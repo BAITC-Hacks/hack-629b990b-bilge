@@ -5,6 +5,10 @@ import react from '@vitejs/plugin-react';
 // Клиент BFF (../backend/client/index.ts) импортируется напрямую — поэтому разрешён доступ к соседней папке.
 const API = process.env.API_URL ?? 'http://127.0.0.1:3001';
 
+// Прокси разработки представляется бэкенду его собственным origin (он всегда в разрешённых):
+// так dev-сервер работает на любом порту (5174…) и по локальной сети без правки ALLOWED_ORIGINS.
+const proxy = { target: API, headers: { origin: API } };
+
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -12,8 +16,8 @@ export default defineConfig({
     strictPort: false,
     fs: { allow: ['..'] },
     proxy: {
-      '/api': API,
-      '/socket.io': { target: API, ws: true },
+      '/api': proxy,
+      '/socket.io': { ...proxy, ws: true },
     },
   },
 });
