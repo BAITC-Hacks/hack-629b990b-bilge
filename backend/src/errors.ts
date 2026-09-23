@@ -22,7 +22,7 @@ export const assertVersion = (actual: number, expected: number) => {
     throw new AppError(
       409,
       'STALE_VERSION',
-      'Данные изменились в другом окне. Загрузите актуальную версию; ваши правки можно применить повторно.',
+      'The data changed in another window. Load the latest version; you can reapply your edits.',
       {},
       'refetch',
     );
