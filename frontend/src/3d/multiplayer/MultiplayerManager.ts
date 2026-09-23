@@ -1,5 +1,5 @@
-// Сетевой слой мира: вход, отправка движения 12 Гц (только при изменении + редкий «пульс»), эмоции, выход,
-// приём состояния других игроков и серверного события GRAND TRIUMPH.
+// World network layer: join, sending movement at 12 Hz (only on change + a rare "heartbeat"), emotes, leave,
+// receiving other players' state and the server's GRAND TRIUMPH event.
 import type { Socket } from 'socket.io-client';
 import { getSocket, getWorldName } from '../../api';
 import type { Emote, MovementState, PlayerPresence, PlayerTick, TriumphInfo } from '../../shared/types';
@@ -38,20 +38,20 @@ export class MultiplayerManager {
   private join = () => {
     const m = this.getMotion();
     this.socket.emit('world.player.join', { p: [m.x, 0, m.z], r: m.r, name: getWorldName() }, (res: { you?: string; players?: PlayerPresence[]; netHz?: number; error?: string }) => {
-      if (!res || res.error || !res.you) { this.store.setConnection(false, res?.error ?? 'Нет ответа сервера'); return; }
+      if (!res || res.error || !res.you) { this.store.setConnection(false, res?.error ?? 'No response from server'); return; }
       this.store.netHz = res.netHz ?? NET_HZ;
       this.store.reset(res.you, res.players ?? []);
       this.store.setConnection(true);
     });
   };
-  private onDisconnect = () => this.store.setConnection(false, 'Соединение с сервером потеряно, переподключаемся…');
+  private onDisconnect = () => this.store.setConnection(false, 'Connection to server lost, reconnecting…');
   private onJoin = (p: PlayerPresence) => this.store.upsert(p);
   private onLeave = (m: { userId: string }) => this.store.remove(m.userId);
   private onState = (batch: PlayerTick[]) => this.store.applyTicks(batch);
   private onAction = (m: { userId: string; action: Emote; until: number }) => this.store.action(m.userId, m.action, m.until);
   private onTriumphMsg = (t: TriumphInfo) => this.onTriumph?.(t);
 
-  /** Не каждый кадр: 12 раз в секунду и только если что-то изменилось (плюс «пульс» раз в 2 с). */
+  /** Not every frame: 12 times per second and only if something changed (plus a "heartbeat" every 2 s). */
   private sendMove = () => {
     if (!this.socket.connected || !this.store.connected) return;
     const m = this.getMotion();
