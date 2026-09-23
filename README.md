@@ -1,171 +1,71 @@
-# AI Sana — рейтинг качества бизнес-задач и открытый выбор команд
+# AI Sana — Business Challenge Quality Rating & Open Team Selection
 
 Interactive multiplayer 3D campus for discovering AI Sana business challenges.
 
 ![3D Campus](3d-world-overview.png)
-Команда **Bilge**, HackAlem · кейс «Геймификация практических заданий».
+Team **Bilge**, HackAlem · "Gamification of Practical Tasks" case study.
 
-our operating video is here: https://drive.google.com/drive/folders/1PKSJU6z9LSoA1dz7B01vrEgPE5YPXJvW
+Watch our demo video here: https://drive.google.com/drive/folders/1PKSJU6z9LSoA1dz7B01vrEgPE5YPXJvW
 
-Бизнес описывает проблему своими словами. ИИ помогает дополнить описание, а сервер прозрачно считает готовность карточки от 0 до 100. Задача публикуется в общем каталоге, который также показан живым 3D-кампусом. Студенческие команды сами выбирают задачи и отправляют предложения, бизнес вручную выбирает одну, несколько или ни одной команды. Команда получает очки только за этап, подтверждённый бизнесом.
+Businesses describe a problem in their own words. AI helps flesh out the description, while the server transparently calculates the task card's readiness score (0–100). The task is published to a general catalog, which is also visualized as a live 3D campus. Student teams select tasks and submit proposals; the business then manually chooses one, several, or no teams. Teams earn points only for stages validated by the business.
 
-**Главная геймификация — для бизнеса:** чем полнее и полезнее описание, тем выше рейтинг и место в каталоге. Рейтинг показывает готовность задачи к работе со студентами, а не известность компании.
+**The primary gamification element is for businesses:** the more complete and useful the description, the higher the rating and catalog placement. The rating reflects the task's readiness for student collaboration, not the company's fame.
 
 ---
 
-## 1. Запуск (одна команда)
+## 1. Launch (Single Team)
 
-Нужен только **Node.js 22.12+** (https://nodejs.org). Из корня репозитория:
+Requires only **Node.js 22.12+** (https://nodejs.org). From the repository root:
 
 ```sh
-npm start        # зависимости → сборка → сервер: http://127.0.0.1:3001
-npm run check    # проверка: типы и тесты backend/frontend, сборка, дымовой запуск (итог PASS/FAIL)
+npm start        # dependencies → build → server: http://127.0.0.1:3001
+npm run check    # checks: backend/frontend types & tests, build, smoke test (result: PASS/FAIL)
 ```
 
-- `npm start` создаёт `backend/.env` из `backend/.env.example`. **Без ключа OpenAI всё работает**, вопросы ИИ идут в явно обозначенном резервном режиме. Для живого ИИ укажите `OPENAI_API_KEY` в `backend/.env` и перезапустите.
-- После запуска в консоли печатаются **коды входа и готовые ссылки** (2 бизнеса, 5 команд). Коды хранятся в локальном `backend/demo-accounts.local.json`, в git этот файл не попадает. Также можно войти гостем.
-- Каждая вкладка браузера — отдельная роль. Например, бизнес в одной вкладке, команда в другой.
-- `npm run start:bots` запускает то же самое плюс демо-игроков в 3D-мире (помечены «демо»).
-- `npm run check` поднимает сервер во временной базе с ИИ в режиме `stub` и Git в режиме `mock`: без внешних вызовов, расходов и изменения ваших данных.
-- Если порт занят: `PORT=3005 npm start`. В PowerShell: `$env:PORT=3005; npm start`.
-- Разработка с горячей перезагрузкой: `cd frontend && npm run dev:all` → http://localhost:5173. Документация API: http://127.0.0.1:3001/api/docs
+- `npm start` generates `backend/.env` from `backend/.env.example`. **Everything works without an OpenAI key**; AI queries run in a clearly indicated fallback mode. For live AI functionality, specify `OPENAI_API_KEY` in `backend/.env` and restart.
+- Upon startup, **login codes and direct links** (for 2 businesses and 5 teams) are printed to the console. Codes are stored in the local `backend/demo-accounts.local.json` file, which is excluded from Git. You can also log in as a guest.
+- Each browser tab represents a separate role. For example, the "business" role in one tab and the "team" role in another.
+- `npm run start:bots` launches the application along with demo players in the 3D world (marked as "demo").
+- `npm run check` starts the server using a temporary database, with AI in `stub` mode and Git in `mock` mode—meaning no external calls, costs, or modifications to your actual data.
+- If the port is already in use: `PORT=3005 npm start`. In PowerShell: `$env:PORT=3005; npm start`.
+- Development with hot reloading: `cd frontend && npm run dev:all` → http://localhost:5173. API Documentation: http://127.0.0.1:3001/api/docs
 
-## 2. Архитектура
+## 2. Architecture
 
 ```
 frontend/  React 19 + TypeScript + Vite 8 + React Three Fiber (three.js)
-   │  2D-экраны: вход, кабинет, конструктор, каталог, карточка, отклики, этап, рейтинг
-   │  3D-кампус: задачи-здания, базы команд, игроки онлайн, GRAND TRIUMPH
-   │  типизированный клиент backend/client/index.ts (HTTP) + socket.io-client
-   ▼
+│  2D screens: login, dashboard, builder, catalog, item details, responses, stage, rating
+│  3D campus: task buildings, team bases, online players, GRAND TRIUMPH
+│  Typed client backend/client/index.ts (HTTP) + socket.io-client
+▼
 backend/   BFF: Node.js + TypeScript + Express 5 + Zod + SQLite (better-sqlite3) + Socket.IO
-   ├─ src/app.ts            HTTP API /api/v1 (OpenAPI 3.1 → /api/docs), CORS/Origin, rate limit
-   ├─ src/services/         сценарии и инварианты: задачи, отклики, выбор, этапы, начисление очков
-   ├─ src/domain/score.ts   формула готовности (раздел 3)
-   ├─ src/views.ts          готовые модели экранов, доступные действия, следующий шаг
-   ├─ src/integrations/     OpenAI (Responses API, Luna) и проверка Git/PR — заменяемые, с резервным режимом
-   ├─ src/realtime.ts       события invalidate/sync.required после записи в SQLite
-   └─ src/world.ts          присутствие игроков в 3D, эмоции, world.triumph, GET /api/v1/world
+├─ src/app.ts            HTTP API /api/v1 (OpenAPI 3.1 → /api/docs), CORS/Origin, rate limiting
+├─ src/services/         Business logic & invariants: tasks, responses, selection, stages, scoring
+├─ src/domain/score.ts   Readiness formula (Section 3)
+├─ src/views.ts          Screen models, available actions, next steps
+├─ src/integrations/     OpenAI (Responses API, Luna) & Git/PR checks — swappable, with fallback mode
+├─ src/realtime.ts       invalidate/sync.required events after SQLite writes
+└─ src/world.ts          3D player presence, emotes, world.triumph, GET /api/v1/world
 ```
 
-- **Сервер — источник истины.** Клиент не присылает баллы, имена команд или решения. Права проверяются на каждой команде: роль, владелец задачи, выбранная команда.
-- **Версии и повторы.** Изменения защищены `expectedVersion`: при конфликте сервер возвращает 409 и не перезаписывает чужие правки. Создание задачи, отклика и этапа идемпотентно (`Idempotency-Key`).
-- **Реальное время.** После каждого изменения клиенты получают событие и перечитывают экран. Одна и та же задача показывается одинаково в 2D-каталоге и в 3D-мире.
-- **Хранение.** SQLite (`backend/data/ai-sana.db`) переживает перезапуск. Секреты хранятся только на сервере и в git не попадают.
-- **3D-мир.**
-  - Задача с высоким рейтингом стоит главным павильоном у монумента в центре площади. Остальные задачи — здания в районах по отрасли.
-  - Место здания стабильно, оно выбирается по `seed = hash(task.id)`.
-  - Уровень готовности меняет оформление здания, маяк и подпись.
-  - Игроки синхронизируются через Socket.IO на 12 Гц со сглаживанием движения. Ходьба и эмоции очков не дают.
-  - GRAND TRIUMPH запускается только после подтверждения этапа бизнесом.
-  - Без WebGL открывается 2D-каталог.
+- **Server as the source of truth.** The client does not send scores, team names, or solutions. Permissions are verified for every operation: role, task owner, selected team.
+- **Versioning and retries.** Changes are protected by `expectedVersion`: in case of conflict, the server returns 409 and does not overwrite concurrent edits. Task, response, and stage creation are idempotent (`Idempotency-Key`). - **Real-time.** Clients receive an event after every change and refresh the screen. The same task appears identically in both the 2D catalog and the 3D world.
+- **Storage.** SQLite (`backend/data/ai-sana.db`) persists across restarts. Secrets are stored only on the server and are not committed to Git.
+- **3D world.**
+- A high-rated task appears as the main pavilion by the monument in the center of the square. Other tasks appear as buildings in districts organized by industry. 
+- Building placement is stable, determined by `seed = hash(task.id)`. 
+- The completion level alters the building's appearance, beacon, and label. 
+- Player synchronization occurs via Socket.IO at 12 Hz with movement smoothing. Walking and emotes do not award points. 
+- The GRAND TRIUMPH event triggers only after the business confirms the stage. 
+- The 2D catalog opens if WebGL is unavailable.
 
-## 3. Формула рейтинга задачи
+## 3. Task rating formula
 
-Баллы начисляются только за **подтверждённые** бизнесом поля (`backend/src/domain/score.ts`, шкала из ТЗ, раздел 4):
+Points are awarded only for fields **confirmed** by the business (`backend/src/domain/score.ts`, scale from the technical specification, section 4):
 
-| Категория | Баллы | Условие |
+| Category | Points | Condition |
 |---|---:|---|
-| Контекст и потребность | 10 + 10 | описано, что происходит сейчас / что нужно изменить |
-| Данные и материалы | 10 + 10 | доступность данных известна (есть или нет) / при наличии назван реальный источник |
-| Ожидаемый результат | 15 | описан конкретный результат работы команды |
-| Критерий успеха | 15 | показатель с целевым значением **или** условие приёмки |
-| Ограничения | 10 | сроки, технологии, доступы **или** явно подтверждено «ограничений нет» |
-| Пользователи | 10 | понятно, для кого делается решение |
-| Связь с бизнесом | 5 + 5 | канал связи / формат консультаций и обратной связи |
-| **Итого** | **100** | |
-
-- Пустые и шаблонные ответы (типовые заглушки вроде «не знаю», «TBD») баллов не дают. Отдельные подсказки качества замечают общие фразы, один текст в нескольких полях и противоречия, но баллы они не меняют. «Данных нет» даёт 10 баллов, но не изображает наличие датасета.
-- Балл — объяснимая эвристика полноты, а не проверка истинности сведений: достоверность подтверждает бизнес.
-- Карточка показывает разбор по категориям, список недостающего и ближайшее улучшение, например «+15: добавьте условие приёмки».
-- Черновик даёт **прогноз**, а официальный балл пересчитывается при каждом «Подтвердить сведения» и может как вырасти, так и снизиться.
-
-**Уровни готовности:**
-- 0–39 «Черновик» — задача видна, отмечена как требующая уточнения;
-- 40–69 «Рабочая»;
-- 70–89 «Готовая» — выше в каталоге;
-- 90–100 «Приоритетная» — выделена.
-
-Низкий рейтинг не скрывает задачу и не мешает откликам.
-
-**Очки команд** — отдельный показатель: **10 очков за этап**, только после подтверждения бизнесом и ровно один раз (запись начисления идёт в одной транзакции SQLite). Отклики, ссылки на коммиты, комментарии ИИ, ходьба и время онлайн очков не дают.
-
-## 4. Правила каталога
-
-- В каталоге **все опубликованные задачи** доступны всем командам и гостям. Черновики видит только владелец.
-- Публикуется только подтверждённый снимок карточки. Правки черновика не видны публично до подтверждения.
-- **Сортировка:** официальный балл по убыванию → более новая публикация выше → id (стабильный порядок).
-- **Фильтры:** отрасль (тема), уровень готовности, поиск по названию и описанию.
-- Число откликов не ограничено, команда может предложить несколько подходов.
-- **Выбор только вручную:** бизнес на экране сравнения откликов выбирает или отклоняет каждое предложение. Можно выбрать несколько команд или никого. Автоматического назначения нет.
-- Выбранная команда создаёт этап с критерием приёмки. Отправка ссылки на Git/PR переводит этап «на проверку», очков это не даёт. Бизнес подтверждает этап (+10 очков) или возвращает его с объяснением.
-
-## 5. Использование ИИ
-
-По умолчанию используется OpenAI Responses API, модель `gpt-6-luna` (`OPENAI_MODEL`), со структурированным выводом (Zod-схема). Код — в `backend/src/integrations/ai.ts`, `analysis.ts`, `ai-runtime.ts`.
-
-| Функция | Вход | Выход | Правило |
-|---|---|---|---|
-| Разбор описания | `{ rawDescription, fields }` | `{ suggestions: [{ field, quote }] }` | сервер принимает только **дословные** непрерывные цитаты из исходного описания и только для пустых полей; человек выбирает, что применить |
-| Уточняющие вопросы | `{ rawDescription, fields, missingFields }` | `{ missingFields, questions: [{ field, text }] }`, 3–5 вопросов | ИИ выбирает недостающие поля, текст вопросов берётся из нейтрального серверного каталога; ответы переносятся в карточку дословно |
-| Предварительная проверка этапа | критерий приёмки, описание, прочитанные материалы Git/PR | цитаты из материалов по каждому критерию | цитата не доказывает выполнение; решение принимает бизнес |
-
-- **Некорректный ответ модели** (не по схеме, отказ, таймаут 30 с, нет ключа) даёт явный резервный режим `mode=stub`:
-  - вопросы берутся по шаблону;
-  - разбор возвращает пустой список;
-  - проверка этапа переходит в ручной режим с предупреждением.
-
-  Ручное заполнение, подтверждение и публикация от ИИ не зависят. Автоматических платных повторов нет.
-- ИИ **не добавляет факты**, которых нет у пользователя, не выбирает команду за бизнес и не использует персональные данные.
-- Каждый вызов записывается в историю задачи: операция, модель, длительность, валидация, причина резервного режима. Промпты и ключи в журнал не пишутся.
-- Отчёт живой регрессии: [docs/evals/live-harness-report.json](docs/evals/live-harness-report.json).
-
-## 6. Данные
-
-При первом запуске сервер создаёт синтетические демо-данные (`backend/src/seed.ts`):
-- 2 бизнеса и 5 команд с интересами, навыками и технологиями;
-- 5 черновиков разной полноты;
-- 5 опубликованных карточек всех четырёх уровней;
-- 5 откликов с идеей, планом, сроком и ссылкой.
-
-Повторный запуск не перезаписывает ваши изменения. Все компании и люди вымышлены.
-
-## 7. Тестовые сценарии
-
-### Автоматические (`npm run check`)
-- **backend, 172 теста (vitest):**
-  - формула и границы уровней;
-  - права ролей, изоляция черновиков, конфликты версий, идемпотентность;
-  - сквозные сценарии бизнеса и команды;
-  - провайдеры ИИ и Git, включая резервный режим;
-  - realtime, выход из сессии;
-  - контракт OpenAPI и клиента;
-  - 3D-мир: игроки команды видны отдельно, скорость ограничена сервером, эмоции из белого списка, `world.triumph` ровно один раз и только после подтверждения бизнесом.
-- **frontend, 6 тестов:** детерминированная планировка мира, стабильность мест при новых задачах, отсутствие пересечений зданий и дорог, коллизии, интерполяция движения.
-- **Дымовой запуск собранного приложения:** health, раздача интерфейса, каталог, `/world`, вход по коду, два игрока видят друг друга.
-
-### Ручные: обязательная демонстрация (≤ 5 минут)
-1. **Бизнес** (вкладка 1): «Описать новую задачу» — вводит слабое описание, например «В кафе остаётся много непроданной еды». Нажимает «Разобрать описание» и выбирает цитаты.
-2. «Уточнить с ИИ»: ответы на 3–5 вопросов по одному. Справа растёт **прогноз** балла.
-3. Правит карточку, нажимает «Подтвердить сведения»: **официальный балл вырос**, в разборе видно, за что именно. Затем «Опубликовать».
-4. **Команда** (вкладка 2, код команды): задача сразу появляется в каталоге и зданием в 3D-мире. Игрок подходит к зданию, нажимает `E` и отправляет предложение.
-5. **Бизнес**: «Сравнить отклики» → «Выбрать команду» или «Отклонить».
-6. *(P1)* Команда создаёт этап и отправляет ссылку. Бизнес подтверждает: +10 очков в рейтинге команд, по всему 3D-миру проходит GRAND TRIUMPH.
-
-### Проверки граничных случаев
-- **Ошибки заполнения:** пустое описание или некорректная ссылка — сервер вернёт ошибки полей, они подсвечиваются в форме.
-- **Правки без подтверждения:** изменили поля, но не нажали «Подтвердить» — публичный балл не меняется.
-- **Конфликт версий:** правка одной карточки в двух вкладках — 409 и предложение загрузить свежую версию, ввод сохраняется.
-- **Попытки обойти права:** команда пытается подтвердить свой этап — 403. Повторное подтверждение — «Повторного начисления нет».
-- **Нет ключа ИИ:** вопросы по шаблону с пометкой, весь сценарий проходит.
-
-## 8. Структура репозитория
-
-```
-backend/     BFF (README: backend/README.md; памятка фронтенду: docs/backend-integration.md)
-frontend/    веб-интерфейс и 3D-мир (README: frontend/README.md)
-scripts/     start.mjs (npm start), check.mjs (npm run check)
-docs/        дизайн бэкенда и harness, отчёты eval
-```
-
-Лицензии 3D-моделей: CC0 — Kenney (City Kit Commercial, Car Kit, Mini) и KayKit City Builder Bits; перечень — `frontend/public/models/LICENSES.txt`.
+| Context and need | 10 + 10 | description of current situation / what needs changing |
+| Data and materials | 10 + 10 | data availability status known (yes/no) / real source named if available |
+| Expected result | 15 | specific team output described |
+| Success criterion | 15 | metric/indicator |
