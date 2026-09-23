@@ -21,7 +21,7 @@ beforeEach(async () => {
     rateLimit: false,
   });
   sockets = [];
-  runtime.auth.addUser({ id: 'business', role: 'business', displayName: 'Кафе', teamId: null }, 'world-biz-code');
+  runtime.auth.addUser({ id: 'business', role: 'business', displayName: 'Cafe', teamId: null }, 'world-biz-code');
   business = runtime.auth.login('world-biz-code').token;
   await new Promise<void>((r) => runtime.httpServer.listen(0, '127.0.0.1', r));
   const addr = runtime.httpServer.address();
@@ -64,12 +64,12 @@ it('shows teammates as separate players with the session team; limits speed; whi
   const t2 = (await request(runtime.app).post('/api/v1/session/start').send({ code })).body.data.token as string;
   const a = await connect(t1);
   const b = await connect(t2);
-  await join(a, { p: [0, 0, 50], name: 'Бейбарыс' });
+  await join(a, { p: [0, 0, 50], name: 'Beibarys' });
   const joined = next<{ userId: string; displayName: string; teamName: string; teamColor: string }>(a, 'world.player.join');
-  const res = await join(b, { p: [2, 0, 50], name: '<b>Аян</b>' });
+  const res = await join(b, { p: [2, 0, 50], name: '<b>Ayan</b>' });
   const other = await joined;
   expect(res.players).toHaveLength(2);
-  expect(other.displayName).toBe('bАян/b');
+  expect(other.displayName).toBe('bAyan/b');
   expect(other.teamName).toBe('Bilge');
   expect(other.teamColor).toBe('#6366f1');
 
@@ -96,24 +96,24 @@ it('emits world.triumph once, only after the business approves; proposal and sub
   const triumphs: { taskId: string; teamName: string }[] = [];
   guest.on('world.triumph', (t) => triumphs.push(t));
 
-  const start = await post(business, '/tasks/start', { rawDescription: 'Списания кафе', title: 'Кафе', industry: 'Общепит' });
+  const start = await post(business, '/tasks/start', { rawDescription: 'Cafe write-offs', title: 'Cafe', industry: 'Food service' });
   const taskId = start.body.data.task.id;
   const confirmed = await post(business, `/tasks/${taskId}/confirm`, { expectedVersion: start.body.data.task.version });
   await post(business, `/tasks/${taskId}/publish`, { expectedVersion: confirmed.body.data.task.version });
   const proposed = await post(token, `/tasks/${taskId}/proposals`, {
-    idea: 'Прогноз',
-    plan: 'Прототип',
-    estimatedTime: 'Неделя',
+    idea: 'Forecast',
+    plan: 'Prototype',
+    estimatedTime: 'One week',
     prototypeUrl: 'https://example.com',
   });
   const proposal = proposed.body.data.myProposals[0];
   await post(business, `/proposals/${proposal.id}/decision`, { expectedVersion: proposal.version, decision: 'select' });
-  const stage = (await post(token, `/tasks/${taskId}/milestones`, { title: 'Прогноз', acceptanceCriteria: 'CSV' })).body
+  const stage = (await post(token, `/tasks/${taskId}/milestones`, { title: 'Forecast', acceptanceCriteria: 'CSV' })).body
     .data.milestone;
   const submitted = await post(token, `/milestones/${stage.id}/evidence`, {
     expectedVersion: stage.version,
     evidenceUrl: 'https://github.com/example/work',
-    description: 'Прототип',
+    description: 'Prototype',
   });
   await new Promise((r) => setTimeout(r, 150));
   expect(triumphs).toHaveLength(0);
@@ -138,13 +138,13 @@ it('emits world.triumph once, only after the business approves; proposal and sub
   expect(triumphs).toHaveLength(1);
 
   const world = (await request(runtime.app).get('/api/v1/world')).body.data;
-  expect(world.achievements[0]).toMatchObject({ taskId, teamName: 'Qadam', taskTitle: 'Кафе' });
+  expect(world.achievements[0]).toMatchObject({ taskId, teamName: 'Qadam', taskTitle: 'Cafe' });
   expect(world.teams.find((t: { name: string }) => t.name === 'Qadam')).toMatchObject({ color: '#059669', confirmedPoints: 10 });
   expect(JSON.stringify(world)).not.toContain('example/work');
 });
 
 it('sanitizes display names', () => {
-  expect(cleanName('  Дана\u0007  ')).toBe('Дана');
+  expect(cleanName('  Dana\u0007  ')).toBe('Dana');
   expect(cleanName('x'.repeat(40))).toHaveLength(24);
   expect(cleanName(42)).toBe('');
 });
