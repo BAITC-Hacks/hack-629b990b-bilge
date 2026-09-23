@@ -1,0 +1,14 @@
+{
+  "name": "ai-sana",
+  "private": true,
+  "description": "AI Sana: BFF (backend/) + 2D-экраны и мультиплеерный 3D-кампус (frontend/)",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "start:bots": "node scripts/start.mjs --bots",
+    "check": "node scripts/check.mjs"
+  }
+}

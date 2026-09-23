@@ -1,12 +1,28 @@
-# AI Sana — 3D Multiplayer Task Campus
+# hack-629b990b-bilge — AI Sana
+Hackathon team repository for Bilge
 
-Interactive multiplayer 3D campus for discovering AI Sana business challenges.
+## Для организаторов: запуск и проверка одной командой
 
-![3D Campus](frontend/docs/screenshots/3d-world-overview.png)
+Нужен только **Node.js 22.12+** (https://nodejs.org). Из корня репозитория:
 
-Students walk a shared WebGL world, see teammates online, open task pavilions, and celebrate a server-driven **GRAND TRIUMPH** when a business confirms a stage result.
+```sh
+npm start        # установить зависимости, собрать и запустить → http://127.0.0.1:3001
+npm run check    # проверить: типы и тесты бэкенда и фронтенда, сборка, дымовой запуск (итог PASS/FAIL)
+```
 
-See the frontend and 3D docs: [frontend/README.md](frontend/README.md)
+- `npm start` сам создаёт `backend/.env` из примера. Без ключа OpenAI всё работает, уточняющие вопросы ИИ идут в явно обозначенном резервном режиме. Для живого ИИ впишите `OPENAI_API_KEY` в `backend/.env` и перезапустите.
+- После запуска в консоли печатаются **коды входа и готовые ссылки** для бизнеса и команд. Коды хранятся в локальном `backend/demo-accounts.local.json`.
+- Роли в разных вкладках браузера независимы: бизнес в одной, команда во второй. В 3D-мире участники видят друг друга.
+- `npm run start:bots` — то же самое плюс демо-боты в 3D-мире для показа в одиночку (помечены «демо»).
+- `npm run check` запускает сервер во временной базе, ИИ в режиме stub и Git в режиме mock. Внешних вызовов, платных запросов и изменений в ваших данных нет.
+- Порт занят? Запустите с другим: `PORT=3005 npm start`. В PowerShell: `$env:PORT=3005; npm start`.
+
+Сценарий показа за 3 минуты:
+1. Бизнес описывает задачу, разбирает описание, отвечает на вопросы ИИ, подтверждает и публикует.
+2. Задача появляется зданием в 3D-мире.
+3. Команда подходит к зданию (E) и откликается.
+4. Бизнес выбирает команду, команда создаёт этап и отправляет ссылку.
+5. Бизнес подтверждает этап: команде +10 очков, по всему миру проходит GRAND TRIUMPH.
 
 ## Backend (AI Sana)
 
@@ -16,4 +32,4 @@ See the frontend and 3D docs: [frontend/README.md](frontend/README.md)
 
 ## Frontend и 3D-мир
 
-[`frontend/`](frontend/README.md): React + Vite + React Three Fiber — 2D-экраны и мультиплеерный 3D-кампус на данных BFF. Запуск всего вместе: `cd frontend && npm install && npm run dev:all` (нужен `backend/.env`, см. выше) → http://localhost:5173. Присутствие игроков и GRAND TRIUMPH — `backend/src/world.ts`.
+[`frontend/`](frontend/README.md): React + Vite + React Three Fiber — 2D-экраны и мультиплеерный 3D-кампус на данных BFF. Для разработки с горячей перезагрузкой: `cd frontend && npm run dev:all` → http://localhost:5173. Присутствие игроков и GRAND TRIUMPH — `backend/src/world.ts`.
