@@ -1,0 +1,11 @@
+Все модели — Kenney (www.kenney.nl), лицензия CC0 1.0 (public domain):
+mini/characters — Kenney Mini characters (https://kenney.nl/assets/mini-characters)
+mini/forest — Kenney Mini forest (https://kenney.nl/assets/mini-forest)
+mini/market — Kenney Mini market (https://kenney.nl/assets/mini-market)
+mini/arcade — Kenney Mini arcade (https://kenney.nl/assets/mini-arcade)
+mini/arena — Kenney Mini arena (https://kenney.nl/assets/mini-arena)
+mini/skate — Kenney Mini skate (https://kenney.nl/assets/mini-skate)
+mini/dungeon — Kenney Mini dungeon (https://kenney.nl/assets/mini-dungeon)
+
+Kenney City Kit (Commercial), Kenney Car Kit — kenney.nl, CC0 1.0 (public/models/city, public/models/car)
+KayKit City Builder Bits — Kay Lousberg (kaylousberg.com), CC0 1.0 (public/models/kaykit)
