@@ -1,4 +1,4 @@
-// Небо, свет, туман, земля: площадь → тротуар → дорога (кольцом вокруг площади) → тротуар → кварталы → фон с горами.
+// Sky, light, fog, ground: plaza → sidewalk → road (a ring around the plaza) → sidewalk → blocks → mountain backdrop.
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -23,7 +23,7 @@ function ringShape(outer: number, rOut: number, inner: number, rIn: number): THR
   s.holes.push(new THREE.Path(hole.getPoints(8).reverse()));
   return s;
 }
-/** Плоская фигура толщиной h (бордюр), лежащая на земле. */
+/** A flat shape of thickness h (curb) lying on the ground. */
 function Slab({ shape, h, y = 0, color }: { shape: THREE.Shape; h: number; y?: number; color: string }) {
   const geo = useMemo(() => {
     const g = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false, curveSegments: 6 });
@@ -59,7 +59,7 @@ export function Sky() {
   );
 }
 
-/** Солнце следует за игроком, чтобы тени рядом были чёткими при небольшой карте теней. */
+/** The sun follows the player so nearby shadows stay crisp with a small shadow map. */
 export function Lights({ focus }: { focus: React.MutableRefObject<THREE.Vector3> }) {
   const sun = useRef<THREE.DirectionalLight>(null);
   const target = useMemo(() => new THREE.Object3D(), []);
@@ -101,7 +101,7 @@ export function Ground({ layout, triumphRef }: { layout: WorldLayout; triumphRef
   const road = useMemo(() => ringShape(ROAD_OUT, 12, ROAD_IN - 0.01, 6), []);
   const outerWalk = useMemo(() => ringShape(SIDEWALK_OUT, 14, ROAD_OUT - 0.01, 12), []);
 
-  // разметка, пешеходные переходы, дорожки кварталов — одна геометрия
+  // road markings, crosswalks, block paths — one geometry
   const marks = useMemo(() => {
     const parts: Part[] = [];
     const mid = (ROAD_IN + ROAD_OUT) / 2;
@@ -120,7 +120,7 @@ export function Ground({ layout, triumphRef }: { layout: WorldLayout; triumphRef
       const color = pa.kind === 'plot' ? '#e6dccb' : pa.kind === 'square' ? '#eadfcb' : '#e9ddc7';
       parts.push({ kind: 'box', p: [pa.x, 0.05, pa.z], s: [pa.w, 0.1, pa.d], color, rotY: pa.rot });
     }
-    // узор площади: кольца и лучи к монументу
+    // plaza pattern: rings and rays toward the monument
     for (const [r0, r1, c] of [[7.6, 8.4, '#e2cfb2'], [12.2, 12.8, '#e6d6bd'], [21.8, 22.6, '#e2cfb2']] as [number, number, string][]) {
       parts.push({ kind: 'ring', p: [0, 0.2, 0], s: [r0, r1], color: c, seg: 12 });
     }
@@ -167,7 +167,7 @@ function Pond() {
   );
 }
 
-/** Горы и холмы на горизонте — задний план (как на референсе кампуса). */
+/** Mountains and hills on the horizon — the backdrop (as in the campus reference). */
 export function Backdrop() {
   const geo = useMemo(() => {
     const parts: Part[] = [];
