@@ -1,4 +1,4 @@
-// Рейтинг команд (GET /scoreboard): только название и очки за подтверждённые бизнесом этапы.
+// Team leaderboard (GET /scoreboard): only the name and points for milestones confirmed by the business.
 import { useApp } from '../state';
 import { Header } from '../components/common';
 
@@ -9,10 +9,10 @@ export function Scoreboard() {
     <>
       <Header />
       <main className="page narrow">
-        <h1>Рейтинг команд</h1>
-        <p className="muted">Очки начисляются только за этапы, подтверждённые бизнесом: 10 за этап, ровно один раз. Отклики, ходьба в мире и ссылки на коммиты очков не дают.</p>
+        <h1>Team leaderboard</h1>
+        <p className="muted">Points are awarded only for milestones confirmed by the business: 10 per milestone, exactly once. Applications, walking around the world and commit links don't earn points.</p>
         <table className="tbl">
-          <thead><tr><th>#</th><th>Команда</th><th>Очки</th></tr></thead>
+          <thead><tr><th>#</th><th>Team</th><th>Points</th></tr></thead>
           <tbody>
             {snap?.scoreboard.teams.map((t) => (
               <tr key={t.name} className={snap.dashboard?.screen === 'team-dashboard' && snap.dashboard.team.name === t.name ? 'me' : ''}>
@@ -23,8 +23,8 @@ export function Scoreboard() {
         </table>
         {world && world.achievements.length > 0 && (
           <section className="panel" style={{ marginTop: 16 }}>
-            <h3>Зал достижений</h3>
-            {world.achievements.map((a) => <div key={a.id}><i className="team-dot" style={{ background: a.teamColor }} /> <b>{a.teamName}</b> завершила задачу «{a.taskTitle}» · {new Date(a.at).toLocaleDateString('ru')}</div>)}
+            <h3>Hall of Achievements</h3>
+            {world.achievements.map((a) => <div key={a.id}><i className="team-dot" style={{ background: a.teamColor }} /> <b>{a.teamName}</b> completed the task “{a.taskTitle}” · {new Date(a.at).toLocaleDateString('en')}</div>)}
           </section>
         )}
       </main>
