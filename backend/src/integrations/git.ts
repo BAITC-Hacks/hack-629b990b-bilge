@@ -12,13 +12,13 @@ export type GitProviderOptions = {
 };
 
 const PRELIMINARY =
-  'Метаданные Git не подтверждают выполнение критериев. Нужна ручная проверка и подтверждение владельца бизнеса.';
+  'Git metadata does not confirm the criteria are met. Manual review and business owner confirmation are required.';
 const MAX_FILES = 8;
 const MAX_FILE_CHARACTERS = 6_000;
 const MAX_TOTAL_CHARACTERS = 24_000;
 const MAX_RESPONSE_BYTES = 256 * 1024;
 const SCOPE =
-  'Выборка ограничена README и первой страницей patch PR: до 8 материалов, 6 000 символов на материал и 24 000 всего. complete относится только к этой выборке; это не аудит репозитория и не проверка работающего кода.';
+  'The sample is limited to the README and the first page of PR patches: up to 8 materials, 6,000 characters per material and 24,000 in total. complete refers only to this sample; it is not a repository audit or a check of working code.';
 const repositorySchema = z.object({
   full_name: z.string().min(3).max(200),
   private: z.literal(false),
@@ -188,8 +188,8 @@ function unavailable(url: string, provider: 'github' | 'manual', warning: string
     provider,
     status: 'unavailable',
     url,
-    title: 'Ссылка на результат',
-    summary: 'Доказательства не проверены. Результат можно проверить вручную.',
+    title: 'Result link',
+    summary: 'The evidence was not verified. The result can be checked manually.',
     facts: [],
     warning,
   };
@@ -217,16 +217,16 @@ class RealGitProvider implements GitProvider {
       return unavailable(
         '',
         'manual',
-        'Укажите публичную HTTPS-ссылку без логина, пароля и нестандартного порта.',
+        'Provide a public HTTPS link without a username, password or non-standard port.',
       );
     if (url.hostname !== 'github.com')
       return {
         provider: 'manual',
         status: 'manual',
         url: url.toString(),
-        title: 'Ссылка для ручной проверки',
+        title: 'Link for manual review',
         facts: [],
-        summary: 'Автоматическая проверка этого Git-хоста не поддерживается.',
+        summary: 'Automatic checks are not supported for this Git host.',
         warning: PRELIMINARY,
       };
     const target = githubTarget(url);
@@ -234,7 +234,7 @@ class RealGitProvider implements GitProvider {
       return unavailable(
         url.toString(),
         'github',
-        'Поддерживаются ссылки GitHub на репозиторий, pull request или tree/ref.',
+        'Supported GitHub links: repository, pull request or tree/ref.',
       );
     const progress: { evidence: EvidenceResult | null } = { evidence: null };
     try {
@@ -255,8 +255,8 @@ class RealGitProvider implements GitProvider {
         const expectedName = `${target.owner}/${target.repository}`.toLowerCase();
         if (repository.full_name.toLowerCase() !== expectedName)
           throw new Error('Repository identity mismatch');
-        const facts = [`Публичный репозиторий: ${repository.full_name}.`];
-        if (repository.default_branch) facts.push(`Основная ветка: ${repository.default_branch}.`);
+        const facts = [`Public repository: ${repository.full_name}.`];
+        if (repository.default_branch) facts.push(`Default branch: ${repository.default_branch}.`);
         let title = repository.full_name;
         let pull: z.infer<typeof pullSchema> | undefined;
         let commitSha: string | undefined;
@@ -274,10 +274,10 @@ class RealGitProvider implements GitProvider {
           commitSha = pull.head.sha;
           title = `PR #${pull.number}: ${pull.title}`;
           facts.push(
-            `PR #${pull.number}: ${pull.state === 'open' ? 'открыт' : 'закрыт'}, ${pull.merged ? 'влит' : 'не влит'}.`,
-            `Изменено файлов: ${pull.changed_files}.`,
-            `Добавлено строк: ${pull.additions}; удалено строк: ${pull.deletions}.`,
-            `Коммит PR: ${pull.head.sha}.`,
+            `PR #${pull.number}: ${pull.state === 'open' ? 'open' : 'closed'}, ${pull.merged ? 'merged' : 'not merged'}.`,
+            `Files changed: ${pull.changed_files}.`,
+            `Lines added: ${pull.additions}; lines removed: ${pull.deletions}.`,
+            `PR commit: ${pull.head.sha}.`,
           );
         } else if (target.kind === 'tree') {
           const commit = z
@@ -285,14 +285,14 @@ class RealGitProvider implements GitProvider {
             .parse(await read(`${base}/commits/${encodeURIComponent(target.reference!)}`));
           commitSha = commit.sha;
           title = `${repository.full_name} — ${target.reference}`;
-          facts.push(`Ссылка на ветку, тег или коммит: ${target.reference}.`, `Коммит: ${commit.sha}.`);
+          facts.push(`Branch, tag or commit reference: ${target.reference}.`, `Commit: ${commit.sha}.`);
         }
         const evidence: EvidenceResult = {
           provider: 'github',
           status: 'verified',
           url: target.url,
           title,
-          summary: 'GitHub подтвердил публичную доступность и метаданные ссылки.',
+          summary: 'GitHub confirmed the link is public and returned its metadata.',
           facts,
           warning: PRELIMINARY,
           snapshot: null,
@@ -305,9 +305,9 @@ class RealGitProvider implements GitProvider {
             commitSha = z
               .object({ sha: shaSchema })
               .parse(await read(`${base}/commits/${encodeURIComponent(repository.default_branch)}`)).sha;
-            facts.push(`Коммит: ${commitSha}.`);
+            facts.push(`Commit: ${commitSha}.`);
           } catch {
-            evidence.warning = `Не удалось зафиксировать коммит; материалы не получены. ${PRELIMINARY}`;
+            evidence.warning = `Could not pin a commit; no materials were fetched. ${PRELIMINARY}`;
             return evidence;
           }
         }
@@ -331,12 +331,12 @@ class RealGitProvider implements GitProvider {
         ) => {
           if (!content.trim()) {
             partial = true;
-            warnings.push(`Материал ${path} пуст; свидетельства из него не получены.`);
+            warnings.push(`Material ${path} is empty; no evidence was taken from it.`);
             return;
           }
           if (files.length >= MAX_FILES || remaining <= 0) {
             partial = true;
-            warnings.push('Остальные материалы не включены из-за лимита выборки.');
+            warnings.push('Remaining materials were not included because of the sample limit.');
             return;
           }
           let selected = content.slice(0, Math.min(MAX_FILE_CHARACTERS, remaining));
@@ -345,7 +345,7 @@ class RealGitProvider implements GitProvider {
           const truncated = incomplete || selected.length < content.length;
           if (truncated) {
             partial = true;
-            warnings.push(`Материал ${path} усечён по лимиту или содержит неполный patch GitHub.`);
+            warnings.push(`Material ${path} was truncated at the limit or contains an incomplete GitHub patch.`);
           }
           files.push({
             id: createHash('sha256').update(`${commitSha}:${kind}:${path}`).digest('hex').slice(0, 24),
@@ -368,7 +368,7 @@ class RealGitProvider implements GitProvider {
         } catch {
           partial = true;
           warnings.push(
-            'README отсутствует, недоступен или превышает лимит ответа; его содержимое не проверено.',
+            'The README is missing, unavailable or exceeds the response limit; its content was not checked.',
           );
         }
         if (pull) {
@@ -381,7 +381,7 @@ class RealGitProvider implements GitProvider {
               pull.changed_files > MAX_FILES
             ) {
               partial = true;
-              warnings.push('Получена только ограниченная часть изменённых файлов PR.');
+              warnings.push('Only a limited part of the changed PR files was fetched.');
             }
             const paths = new Set<string>();
             for (const entry of entries.slice(0, MAX_FILES)) {
@@ -389,7 +389,7 @@ class RealGitProvider implements GitProvider {
               if (!parsed.success || !parsed.data.patch || paths.has(parsed.data.filename)) {
                 partial = true;
                 warnings.push(
-                  'Один из patch отсутствует или не прошёл проверку; бинарные файлы не анализируются.',
+                  'One of the patches is missing or failed validation; binary files are not analyzed.',
                 );
                 continue;
               }
@@ -404,7 +404,7 @@ class RealGitProvider implements GitProvider {
             }
           } catch {
             partial = true;
-            warnings.push('Patch PR недоступны или превышают лимит ответа.');
+            warnings.push('PR patches are unavailable or exceed the response limit.');
           }
           try {
             const current = validatePull(await read(`${base}/pulls/${target.reference}`));
@@ -414,19 +414,19 @@ class RealGitProvider implements GitProvider {
               current.changed_files !== pull.changed_files
             ) {
               snapshot.warnings.push(
-                'PR изменился во время получения материалов; все материалы отброшены. Метаданные отражают первоначальный запрос; повторите проверку.',
+                'The PR changed while materials were being fetched; all materials were discarded. Metadata reflects the initial request; retry the check.',
               );
               return evidence;
             }
           } catch {
             snapshot.warnings.push(
-              'Не удалось подтвердить неизменность PR; все материалы отброшены. Повторите проверку.',
+              'Could not confirm the PR was unchanged; all materials were discarded. Retry the check.',
             );
             return evidence;
           }
         } else {
           warnings.push(
-            'Проверена только доступная README на указанном коммите; исходный код репозитория не исследован.',
+            'Only the available README at the given commit was checked; the repository source code was not examined.',
           );
         }
         signal.throwIfAborted();
@@ -441,7 +441,7 @@ class RealGitProvider implements GitProvider {
         const evidence = progress.evidence;
         return {
           ...evidence,
-          warning: `Материалы не получены полностью: превышено время ожидания или GitHub недоступен. ${PRELIMINARY}`,
+          warning: `Materials were not fully fetched: timed out or GitHub is unavailable. ${PRELIMINARY}`,
           snapshot: evidence.snapshot
             ? {
                 ...evidence.snapshot,
@@ -449,7 +449,7 @@ class RealGitProvider implements GitProvider {
                 files: [],
                 warnings: [
                   ...evidence.snapshot.warnings,
-                  'Получение материалов не завершено; повторите проверку.',
+                  'Fetching materials did not finish; retry the check.',
                 ],
               }
             : null,
@@ -458,7 +458,7 @@ class RealGitProvider implements GitProvider {
       return unavailable(
         target.url,
         'github',
-        `GitHub не подтвердил публичные метаданные: ссылка недоступна, приватная или превышено время ожидания. ${PRELIMINARY}`,
+        `GitHub did not confirm public metadata: the link is unavailable, private or timed out. ${PRELIMINARY}`,
       );
     }
   }
@@ -470,10 +470,10 @@ class MockGitProvider implements GitProvider {
       provider: 'mock',
       status: 'mock',
       url: publicUrl(input)?.toString() ?? '',
-      title: 'Демонстрационные доказательства',
-      summary: 'Имитация проверки: запрос к Git-хосту не выполнялся.',
+      title: 'Demo evidence',
+      summary: 'Simulated check: no request was made to the Git host.',
       facts: [],
-      warning: `Демонстрационный режим: внешние данные не проверены. ${PRELIMINARY}`,
+      warning: `Demo mode: external data was not verified. ${PRELIMINARY}`,
     };
   }
 }
