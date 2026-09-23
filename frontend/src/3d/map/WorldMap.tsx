@@ -1,5 +1,5 @@
-// Режим карты (M): значки поверх мира с высоты птичьего полёта. Линии «задача → база выбранной команды» — только здесь,
-// чтобы основной мир не превращался в «тарелку спагетти».
+// Map mode (M): pins over the world from a bird's-eye view. "Task → selected team base" lines appear only here
+// so the main world doesn't turn into a "plate of spaghetti".
 import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, Line } from '@react-three/drei';
@@ -87,5 +87,5 @@ function MapPlayer({ store, id, rel, color, name, team, open, onClick }: { store
 function MapMe({ me }: { me: React.MutableRefObject<THREE.Vector3> }) {
   const g = useRef<THREE.Group>(null);
   useFrame(() => { g.current?.position.set(me.current.x, 2.2, me.current.z); });
-  return <group ref={g}><Html center zIndexRange={[42, 0]}><div className="map-pin me">Вы</div></Html></group>;
+  return <group ref={g}><Html center zIndexRange={[42, 0]}><div className="map-pin me">You</div></Html></group>;
 }
