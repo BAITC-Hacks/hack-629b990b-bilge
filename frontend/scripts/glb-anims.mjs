@@ -1,4 +1,4 @@
-// Печатает имена анимаций и узлов GLB (читает JSON-чанк без three.js).
+// Prints GLB animation and node names (reads the JSON chunk without three.js).
 import { readFileSync, writeFileSync } from 'node:fs';
 const files = process.argv.slice(2);
 let out = '';
