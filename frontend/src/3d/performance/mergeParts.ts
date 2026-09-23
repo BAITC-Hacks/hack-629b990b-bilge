@@ -1,11 +1,11 @@
-// Сборка статичной геометрии из примитивов в один меш с цветами вершин (один вызов отрисовки на здание/слой).
+// Merges static geometry from primitives into one mesh with vertex colors (one draw call per building/layer).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 export type PartKind = 'box' | 'cyl' | 'cone' | 'sphere' | 'hcyl' | 'torus' | 'oct' | 'ring';
 export interface Part {
   kind: PartKind;
-  /** центр детали (для box/cyl — центр объёма) */
+  /** part center (for box/cyl — the volume center) */
   p: [number, number, number];
   /** box: [w, h, d]; cyl/cone: [rTop, h, rBottom]; sphere/oct: [r]; hcyl: [r, len]; torus: [R, tube]; ring: [rIn, rOut] */
   s: number[];
@@ -33,7 +33,7 @@ function geometryOf(part: Part): THREE.BufferGeometry {
   }
 }
 
-/** Детали → одна геометрия с атрибутом color (без индексов, flat shading материала). */
+/** Parts → one geometry with a color attribute (non-indexed, material flat shading). */
 export function mergeParts(parts: Part[]): THREE.BufferGeometry | null {
   if (!parts.length) return null;
   const geos = parts.map((part) => {
@@ -59,9 +59,9 @@ export function mergeParts(parts: Part[]): THREE.BufferGeometry | null {
   return merged;
 }
 
-/** Общие материалы: матовый low-poly и светящиеся элементы (окна, вывески). */
+/** Shared materials: matte low-poly and glowing elements (windows, signs). */
 export const SOLID_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.88, metalness: 0, flatShading: true });
-/** Неосвещаемый материал: яркость задаётся множителем цвета (0,6 — тускло, 1 — светится). */
+/** Unlit material: brightness is set by a color multiplier (0.6 — dim, 1 — glowing). */
 export function glowMaterial(brightness: number) {
   return new THREE.MeshBasicMaterial({ vertexColors: true, color: new THREE.Color(brightness, brightness, brightness), toneMapped: false });
 }
