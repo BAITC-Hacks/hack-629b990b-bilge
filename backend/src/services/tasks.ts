@@ -23,7 +23,7 @@ export class Tasks {
   ) {}
   require(id: string): Task {
     const task = this.store.get<Task>('tasks', id);
-    invariant(task, 404, 'TASK_NOT_FOUND', 'Задача не найдена');
+    invariant(task, 404, 'TASK_NOT_FOUND', 'Task not found');
     return task;
   }
   own(actor: Actor, id: string): Task {
@@ -32,7 +32,7 @@ export class Tasks {
       actor.role === 'business' && task.businessUserId === actor.id,
       403,
       'FORBIDDEN',
-      'Только владелец бизнеса может изменить эту задачу',
+      'Only the business owner can change this task',
     );
     return task;
   }
@@ -42,7 +42,7 @@ export class Tasks {
       task.publicationStatus === 'published' && task.confirmedFields,
       404,
       'TASK_NOT_FOUND',
-      'Опубликованная задача не найдена',
+      'Published task not found',
     );
     return task;
   }
@@ -88,7 +88,7 @@ export class Tasks {
         /^[\w-]{8,120}$/.test(key),
         422,
         'INVALID_IDEMPOTENCY_KEY',
-        'Idempotency-Key должен содержать 8–120 букв, цифр, дефисов или подчёркиваний',
+        'Idempotency-Key must contain 8–120 letters, digits, hyphens or underscores',
       );
       const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
       const previous = this.store.commandResult(actor.id, command, key);
@@ -97,7 +97,7 @@ export class Tasks {
           previous.fingerprint === fingerprint,
           409,
           'IDEMPOTENCY_CONFLICT',
-          'Этот ключ повтора уже использован с другим содержимым',
+          'This retry key was already used with different content',
         );
         return previous.resultId;
       }
@@ -111,7 +111,7 @@ export class Tasks {
       actor.role === 'business',
       403,
       'BUSINESS_REQUIRED',
-      'Создавать задачи может представитель бизнеса',
+      'Only a business representative can create tasks',
     );
     let created = false;
     const id = this.once(actor, 'start', key, input, () => {
@@ -124,7 +124,7 @@ export class Tasks {
           ...emptyFields(),
           context: input.rawDescription.slice(0, 4000),
           title: input.title || input.rawDescription.slice(0, 100),
-          industry: input.industry || 'Другое',
+          industry: input.industry || 'Other',
         },
         confirmedFields: null,
         publicationStatus: 'draft',
@@ -226,7 +226,7 @@ export class Tasks {
         throw new AppError(
           409,
           'ANALYSIS_STALE',
-          'Предложения относятся к предыдущей версии. Запустите разбор снова; ваши правки сохранены.',
+          'The suggestions belong to a previous version. Run the analysis again; your edits are saved.',
           {},
           'reanalyze',
         );
@@ -236,7 +236,7 @@ export class Tasks {
           [...ids].every((id) => analysis.suggestions.some((item) => item.id === id)),
         422,
         'INVALID_SUGGESTIONS',
-        'Выберите предложения из текущего анализа',
+        'Select suggestions from the current analysis',
       );
       const answered = new Set(task.clarification?.answeredFields ?? []);
       for (const suggestion of analysis.suggestions)
@@ -245,7 +245,7 @@ export class Tasks {
             !task.draftFields[suggestion.field].trim(),
             409,
             'FIELD_ALREADY_FILLED',
-            'Поле уже заполнено. Сохранённый текст не изменён.',
+            'The field is already filled. The saved text was not changed.',
           );
           task.draftFields[suggestion.field] = suggestion.value;
           if (task.clarification?.questions.some((question) => question.field === suggestion.field))
@@ -284,10 +284,10 @@ export class Tasks {
       const task = this.own(actor, id);
       assertVersion(task.version, expected);
       const fieldErrors: Record<string, string[]> = {};
-      if (!validCardHeading(task.draftFields.title)) fieldErrors.title = ['Укажите понятное название задачи'];
-      if (!validCardHeading(task.draftFields.industry)) fieldErrors.industry = ['Укажите отрасль'];
+      if (!validCardHeading(task.draftFields.title)) fieldErrors.title = ['Enter a clear task title'];
+      if (!validCardHeading(task.draftFields.industry)) fieldErrors.industry = ['Enter the industry'];
       if (Object.keys(fieldErrors).length)
-        throw new AppError(422, 'REVIEW_REQUIRED', 'Проверьте карточку перед подтверждением', fieldErrors);
+        throw new AppError(422, 'REVIEW_REQUIRED', 'Review the card before confirming', fieldErrors);
       task.confirmedFields = structuredClone(task.draftFields);
       if (task.clarification) task.clarification.reviewed = true;
       this.bump(task);
@@ -302,12 +302,12 @@ export class Tasks {
       const task = this.own(actor, id);
       if (task.publicationStatus === 'published') return task;
       assertVersion(task.version, expected);
-      invariant(task.confirmedFields, 409, 'CONFIRM_FIRST', 'Сначала подтвердите сведения карточки');
+      invariant(task.confirmedFields, 409, 'CONFIRM_FIRST', 'Confirm the card details first');
       invariant(
         JSON.stringify(task.confirmedFields) === JSON.stringify(task.draftFields),
         409,
         'UNCONFIRMED_CHANGES',
-        'Подтвердите последние правки перед публикацией',
+        'Confirm the latest edits before publishing',
       );
       task.publicationStatus = 'published';
       task.publishedAt = new Date().toISOString();
