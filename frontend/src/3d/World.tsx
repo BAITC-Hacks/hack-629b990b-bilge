@@ -1,5 +1,5 @@
-// AI Sana World — живой мультиплеерный кампус. Данные задач и команд — те же, что в 2D (снимок с сервера);
-// присутствие игроков, эмоции и GRAND TRIUMPH — через Socket.IO. Ходьба, эмоции и онлайн-время баллов не дают.
+// AI Sana World — a live multiplayer campus. Task and team data are the same as in 2D (server snapshot);
+// player presence, emotes and GRAND TRIUMPH go through Socket.IO. Walking, emotes and online time earn no points.
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -36,16 +36,16 @@ const INTRO_KEY = 'sana-world-intro-seen';
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(e: unknown) { console.error('3D-сцена не запустилась', e); }
+  componentDidCatch(e: unknown) { console.error('3D scene failed to start', e); }
   render() {
     if (this.state.failed) return (
-      <div className="world-fail"><h2>3D-мир не запустился на этом устройстве</h2><p>Все задачи и действия доступны в обычном каталоге.</p><Link className="btn" to="/list?nowebgl=1">Открыть 2D-каталог</Link></div>
+      <div className="world-fail"><h2>The 3D world couldn't start on this device</h2><p>All tasks and actions are available in the regular catalog.</p><Link className="btn" to="/list?nowebgl=1">Open 2D catalog</Link></div>
     );
     return this.props.children;
   }
 }
 
-/** Реквизит зданий задач (зонтики, тележки, фургоны…) из генератора → мировые координаты для инстансинга. */
+/** Task-building props (umbrellas, carts, vans…) from the generator → world coordinates for instancing. */
 function buildingProps(layout: WorldLayout, tasks: PublicTask[]) {
   const groups: Record<string, Placement[]> = {};
   const colliders: Collider[] = [];
@@ -84,15 +84,15 @@ export default function World() {
   const [params, setParams] = useSearchParams();
   const reduced = usePrefersReducedMotion();
   const debug = params.get('debug3d') === '1';
-  // все опубликованные карточки каталога BFF (не только первая страница) — перечитываются по событиям сервера
+  // all published BFF catalog cards (not just the first page) — re-fetched on server events
   const [tasks, setTasks] = useState<PublicTask[]>([]);
   useEffect(() => { void allCards().then((cards) => setTasks(cards.map(toWorldTask))).catch(() => undefined); }, [revision]);
   const teams: WorldTeam[] = world?.teams ?? [];
   const me = snap?.bootstrap.actor ?? null;
   const myTeam = me?.teamId ? teams.find((t) => t.id === me.teamId) ?? null : null;
-  const myName = getWorldName() || me?.displayName || 'Гость';
+  const myName = getWorldName() || me?.displayName || 'Guest';
 
-  // планировка зависит только от набора задач/уровней и команд — детерминированно
+  // the layout depends only on the set of tasks/levels and teams — deterministic
   const layoutKey = tasks.map((t) => `${t.id}:${t.score.total}:${t.industry}:${t.publishedAt}`).join('|') + '#' + teams.map((t) => t.id).join(',');
   const layout = useMemo(() => buildLayout(tasks, teams.map((t) => t.id)), [layoutKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const bprops = useMemo(() => buildingProps(layout, tasks), [layout, tasks]);
@@ -105,7 +105,7 @@ export default function World() {
     return g;
   }, [layout, bprops]);
 
-  // игрок, камера, сеть, события
+  // player, camera, network, events
   const refs: PlayerRefs = { pos: useRef(new THREE.Vector3(0, 0, 27)), rot: useRef(0), movement: useRef('idle') };
   const cam = useCameraState();
   const focus = useRef(new THREE.Vector3());
@@ -132,7 +132,7 @@ export default function World() {
   useEffect(() => { events.startAmbient(); return () => events.stop(); }, [events]);
   useEffect(() => events.subscribe(() => { triumphRef.current = events.triumphProgress(); }), [events]);
 
-  // сеть: вход в мир после загрузки снимка (сервер знает, кто мы, по сессии)
+  // network: join the world after the snapshot loads (the server knows who we are from the session)
   useEffect(() => {
     if (!snap) return;
     const m = new MultiplayerManager(() => ({ x: refs.pos.current.x, z: refs.pos.current.z, r: refs.rot.current, m: refs.movement.current }));
@@ -190,7 +190,7 @@ export default function World() {
   const getYaw = useCallback(() => cam.current.yaw, [cam]);
   const interact = useCallback(() => { if (nearId) openTask(nearId); }, [nearId, openTask]);
 
-  if (!snap) return <div className="page-loading world-loading">Загрузка мира…</div>;
+  if (!snap) return <div className="page-loading world-loading">Loading world…</div>;
 
   return (
     <div className="world-root">
@@ -200,7 +200,7 @@ export default function World() {
           dpr={[1, 1.5]}
           gl={{ antialias: true, powerPreference: 'high-performance' }}
           camera={{ fov: 50, near: 0.5, far: 1400, position: [0, 120, 170] }}
-          onPointerMissed={() => { /* клик по пустому месту ничего не делает */ }}
+          onPointerMissed={() => { /* clicking empty space does nothing */ }}
         >
           <color attach="background" args={['#d5eaf8']} />
           <fog attach="fog" args={['#d9ecf8', 110, 430]} />
@@ -300,9 +300,9 @@ export default function World() {
           onLogout={async () => { await api.endSession().catch(() => undefined); setToken(null); await refresh(); nav('/login'); }}
         />
       )}
-      {mode === 'intro' && <button className="intro-skip" onClick={endIntro}>Пропустить облёт</button>}
+      {mode === 'intro' && <button className="intro-skip" onClick={endIntro}>Skip fly-over</button>}
       {nearId && !selected && mode !== 'map' && (
-        <button className="hud-near" onClick={interact}><kbd>E</kbd> Открыть задачу «{tasks.find((t) => t.id === nearId)?.title}»</button>
+        <button className="hud-near" onClick={interact}><kbd>E</kbd> Open task “{tasks.find((t) => t.id === nearId)?.title}”</button>
       )}
       <div ref={compass} className="mate-compass" style={{ display: 'none' }}><i>➜</i><span /></div>
       <TriumphBanner events={events} />
@@ -313,7 +313,7 @@ export default function World() {
   );
 }
 
-/** База команды с живым счётчиком онлайн. */
+/** Team base with a live online counter. */
 function TeamBaseLive({ team, slot, mine, net, tasks, myResponses, reduced, events }: { team: WorldTeam; slot: WorldLayout['teamSlots'][number]; mine: boolean; net: MultiplayerManager | null; tasks: PublicTask[]; myResponses: number; reduced: boolean; events: WorldEventManager }) {
   const store = net?.store;
   return store ? <TeamBaseCounted team={team} slot={slot} mine={mine} store={store} tasks={tasks} myResponses={myResponses} reduced={reduced} events={events} />
@@ -327,7 +327,7 @@ function TeamBaseCounted({ team, slot, mine, store, tasks, myResponses, reduced,
   return <TeamBase team={team} slot={slot} mine={mine} onlineCount={n} workingOn={workingOn} myResponses={myResponses} reduced={reduced} events={events} celebrating={events.triumph?.teamId === team.id} near={false} />;
 }
 
-/** Раз в ~0,25 с раздаёт подписи зданиям по близости к игроку. */
+/** Every ~0.25 s assigns building labels by proximity to the player. */
 function LabelBudgetUpdater({ budget, player, forced }: { budget: LabelBudget; player: React.MutableRefObject<THREE.Vector3>; forced: (string | null)[] }) {
   const acc = useRef(1);
   const forcedSet = useMemo(() => new Set(forced.filter((x): x is string => !!x)), [forced.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -341,7 +341,7 @@ function LabelBudgetUpdater({ budget, player, forced }: { budget: LabelBudget; p
   return null;
 }
 
-/** Ближайшая задача для подсказки [E]: у главного павильона — радиус, у здания — перед фасадом. */
+/** Nearest task for the [E] hint: a radius for main pavilions, the area in front of the facade for buildings. */
 function NearProbe({ layout, player, onNear }: { layout: WorldLayout; player: React.MutableRefObject<THREE.Vector3>; onNear: (id: string | null) => void }) {
   const last = useRef<string | null>(null);
   const frame = useRef(0);
