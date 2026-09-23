@@ -1,14 +1,14 @@
-// Типы 3D-мира. Бизнес-данные приходят из BFF (backend/client/index.ts); здесь — их компактное
-// представление для сцены и типы присутствия игроков (зеркало backend/src/world.ts).
+// 3D-world types. Business data comes from the BFF (backend/client/index.ts); here is its compact
+// representation for the scene and player presence types (mirror of backend/src/world.ts).
 import type { CatalogView } from '../api';
 
 export type Role = 'business' | 'team' | 'guest';
-/** Уровни готовности в сцене (BFF: draft / working / ready / priority). */
+/** Readiness levels in the scene (BFF: draft / working / ready / priority). */
 export type LevelKey = 'draft' | 'work' | 'ready' | 'priority';
 
 type Card = CatalogView['cards'][number];
 
-/** Задача, как её показывает мир: публичные сведения карточки каталога BFF. */
+/** A task as the world shows it: public details of a BFF catalog card. */
 export interface WorldTask {
   id: string;
   title: string;
@@ -38,11 +38,11 @@ export function toWorldTask(c: Card): WorldTask {
   };
 }
 
-/** Команда для базы в мире (GET /api/v1/world). */
+/** A team for its in-world base (GET /api/v1/world). */
 export interface WorldTeam { id: string; name: string; color: string; avatarPreset: string; confirmedPoints: number }
 export interface Achievement { id: string; teamId: string; teamName: string; teamColor: string; taskId: string; taskTitle: string; milestoneTitle: string; at: string }
 
-// ---- присутствие (синхронизируется через Socket.IO; на баллы не влияет) ----
+// ---- presence (synced via Socket.IO; does not affect scores) ----
 export type MovementState = 'idle' | 'walk' | 'run';
 export type Emote = 'wave' | 'cheer' | 'point' | 'celebrate';
 export type PresenceState = 'online' | 'idle' | 'moving' | 'interacting';
