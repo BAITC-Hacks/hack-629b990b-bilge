@@ -10,7 +10,7 @@ This branch is isolated from the shared `backend/bff` line of work.
 
 ![Local 3D avatar generated with Hunyuan3D](docs/images/avatar-demo.png)
 
-A real GLB generated locally from a full-body image using Hunyuan3D-2mini and rendered in the web avatar viewer.
+A real GLB generated locally from a full-body image: rembg isolates the person, Hunyuan3D-2mini reconstructs the mesh, then a visibility-aware bake colors the front and fills unseen surfaces. Rendered in the web avatar viewer.
 
 ---
 
@@ -20,9 +20,10 @@ AI Sana already has a Node.js / TypeScript BFF for challenge workflows. This fea
 
 1. The user provides a full-body image.
 2. The image is sent only to a local FastAPI process.
-3. Hunyuan3D-2mini runs **on this machine**.
-4. The service exports a GLB.
-5. The web viewer loads that local URL.
+3. rembg (`u2net_human_seg`) isolates the person and removes the background.
+4. Hunyuan3D-2mini reconstructs a person-only mesh **on this machine**.
+5. A visibility-aware texture bake colors front-visible surfaces from the isolated photo and fills the back with region colors.
+6. The service exports a GLB and the web viewer loads that local URL.
 
 The goal is a privacy-preserving hackathon prototype: inference stays local after model weights are installed.
 
@@ -34,10 +35,12 @@ Confirmed in this repository and validated on a local GPU machine:
 - Local image validation (Pillow; JPEG / PNG / WEBP; size and dimension checks)
 - FastAPI avatar sidecar (`backend/local-avatar-service/`)
 - Local Hunyuan3D-2mini shape inference
+- Automatic person isolation / background removal (`rembg` `u2net_human_seg`)
+- Person-only mesh cleanup (largest body component)
+- Visibility-aware front coloring (back-facing faces do not reuse the front photo)
 - Asynchronous generation jobs
 - Job status polling
-- Shape-only 3D generation (texture disabled)
-- GLB export (`trimesh` / `pygltflib`)
+- GLB export (`trimesh` / `pygltflib`) with a real texture material
 - Local GLB serving (`GET /generated/{filename}`)
 - Interactive 3D viewer (`@google/model-viewer` in the validated web UI)
 - Recreate flow that keeps the previous avatar until a new job succeeds
@@ -54,8 +57,8 @@ Verified environment:
 
 - NVIDIA RTX 4090
 - Local inference (`cuda:0`)
-- Shape-only generation (untextured mesh)
-- Generated GLB ≈ **11.2 MB**
+- Person-only mesh (background slab removed)
+- Visibility-aware front texture + region-color fallback on unseen surfaces
 - API: `http://127.0.0.1:8001`
 - Viewer used during validation: `http://localhost:3010`
 
@@ -72,11 +75,15 @@ Upload UI
       ↓
 FastAPI local avatar service
       ↓
-Validation / preprocessing
+Validation
       ↓
-Hunyuan3D-2mini
+Person isolation / background removal
       ↓
-3D mesh
+Hunyuan3D-2mini (isolated person only)
+      ↓
+Mesh cleanup
+      ↓
+Visibility-aware texture bake
       ↓
 GLB export
       ↓
@@ -95,9 +102,10 @@ The Python service is a **sidecar**. It does **not** replace the existing Node/T
 flowchart LR
     U[User] --> UI[Avatar Web UI]
     UI --> API[Local FastAPI Avatar Service]
-    API --> P[Image Validation / Preprocessing]
+    API --> P[Person Isolation]
     P --> H[Hunyuan3D-2mini]
-    H --> G[GLB Export]
+    H --> T[Visible-front Texture Bake]
+    T --> G[GLB Export]
     G --> S[Local Generated Asset Storage]
     S --> V[Interactive 3D Viewer]
     U --> BFF[Existing Node.js BFF]
@@ -114,7 +122,7 @@ flowchart LR
 
 ![Generated avatar viewer](docs/images/avatar-viewer.png)
 
-Fullscreen inspect/rotate view of the locally generated shape-only GLB.
+Fullscreen inspect/rotate view of the locally generated person-only GLB with front-view color.
 
 ### Local Avatar Creation Flow
 
@@ -129,6 +137,7 @@ Upload UI before a photo is selected. Generation does not start until the user c
 | Existing backend | Node.js 22+, TypeScript, Express, SQLite, Socket.IO |
 | Avatar service | Python 3.11, FastAPI, Uvicorn |
 | Image validation | Pillow |
+| Person isolation | rembg (`u2net_human_seg`) |
 | 3D model generation | Hunyuan3D-2mini (`hy3dgen` / `tencent/Hunyuan3D-2mini`) |
 | ML runtime | PyTorch + CUDA |
 | GPU (validation) | NVIDIA RTX 4090 |
@@ -245,8 +254,9 @@ First-time weight download can take a long time. Later jobs reuse the loaded mod
 
 ## Known Limitations
 
-- Current verified pipeline is **shape-only**.
-- The generated avatar is **untextured**.
+- Coloring is a **visibility-aware front bake**, not photorealistic multi-view texturing.
+- Unseen / back-facing surfaces use region-color fallback, not a copied front photo.
+- Hunyuan3D-Paint / full texture synthesis is **not** enabled.
 - No skeletal rigging.
 - No animation.
 - Hunyuan3D is general image-to-3D, not dedicated biometric / SMPL-X reconstruction.

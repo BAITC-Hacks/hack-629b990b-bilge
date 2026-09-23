@@ -112,14 +112,16 @@ Poll every 1–2 seconds until `completed` or `failed`. Stop polling when the UI
 Coarse stages:
 
 - `queued`
-- `validating_image`
+- `validating_image` (person isolation / background removal)
 - `loading_model`
 - `reconstructing_human`
-- `building_mesh`
+- `building_mesh` (cleanup + visibility-aware texture bake)
 - `exporting_glb`
 - `completed` / `failed`
 
 These are real stages, not fake percentages.
+
+The isolated person image is what Hunyuan reconstructs. The exported GLB uses a two-chart texture: front-visible faces receive the segmented photo; unseen / back-facing faces receive region-color fallback. This is **not** Hunyuan3D-Paint and not photorealistic full texturing.
 
 ## Generated GLB
 

@@ -6,7 +6,7 @@ It does **not** replace the Node.js BFF in `backend/src`. Run this service separ
 
 ## What it does
 
-Local full-body image → local Hunyuan3D → GLB.
+Local full-body image → person isolation → local Hunyuan3D → visibility-aware texture bake → GLB.
 
 No external avatar SaaS.
 
@@ -14,7 +14,9 @@ No external avatar SaaS.
 Browser / Node BFF
   → http://127.0.0.1:8001
   → FastAPI job API
+  → rembg person isolation
   → Hunyuan3D-2mini shape pipeline (local GPU)
+  → visibility-aware front texture bake
   → generated/*.glb
   → model-viewer / Three.js
 ```
@@ -22,10 +24,12 @@ Browser / Node BFF
 ## Current status
 
 - API implemented (`/health`, job create/poll, generated GLB serving, optional sync test endpoint)
-- Hunyuan integration implemented (shape-only wrapper)
-- First local shape-only generation **validated** on an RTX 4090 with a full-body photo
-- rembg / BRIA ONNX is **skipped** on P0 (that 1GB download blocked first inference)
-- texture / Hunyuan3D-Paint is optional and **disabled** by default (`HUNYUAN_ENABLE_PAINT=0`)
+- Hunyuan integration implemented (local shape wrapper)
+- Person isolation with rembg `u2net_human_seg` (largest foreground component, crop + center)
+- Mesh cleanup keeps the main body and drops tiny disconnected junk
+- Visibility-aware coloring: front-visible faces sample the isolated photo; back / occluded faces use region colors
+- Hunyuan3D-Paint remains **disabled** (`HUNYUAN_ENABLE_PAINT=0`) — this is not photorealistic multi-view texturing
+- First local generation **validated** on an RTX 4090 with a full-body photo
 - Generated GLBs are **not** stored in git
 
 ## Privacy
