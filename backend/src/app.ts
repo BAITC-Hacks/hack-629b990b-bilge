@@ -45,7 +45,7 @@ export function createApp(options: AppOptions) {
     res.setHeader('Cache-Control', 'no-store');
     const origin = req.headers.origin;
     if (origin && !origins.includes(origin))
-      return next(new AppError(403, 'ORIGIN_NOT_ALLOWED', 'Этот адрес интерфейса не разрешён сервером'));
+      return next(new AppError(403, 'ORIGIN_NOT_ALLOWED', 'This interface origin is not allowed by the server'));
     next();
   });
   app.use(
@@ -67,7 +67,7 @@ export function createApp(options: AppOptions) {
           new AppError(
             429,
             'RATE_LIMITED',
-            'Слишком много запросов. Повторите через минуту.',
+            'Too many requests. Try again in a minute.',
             {},
             'retry_later',
           ),
@@ -88,14 +88,14 @@ export function createApp(options: AppOptions) {
       /^Bearer [A-Za-z0-9_-]{20,200}$/.test(header),
       401,
       'INVALID_SESSION',
-      'Неверный формат сессии',
+      'Invalid session format',
     );
     return header.slice(7);
   };
   const optional = (req: Request) => auth.resolve(token(req));
   const actor = (req: Request): Actor => {
     const user = optional(req);
-    invariant(user, 401, 'LOGIN_REQUIRED', 'Войдите, чтобы выполнить действие');
+    invariant(user, 401, 'LOGIN_REQUIRED', 'Sign in to perform this action');
     return user;
   };
   const id = (req: Request) => req.params.id as string;
@@ -115,14 +115,14 @@ export function createApp(options: AppOptions) {
   );
   api.get('/bootstrap', (req, res) => send(res, views.bootstrap(optional(req))));
   api.post('/session/start', (req, res) =>
-    send(res, auth.login(commands.session.parse(req.body).code), 'Вы вошли в платформу'),
+    send(res, auth.login(commands.session.parse(req.body).code), 'You are signed in'),
   );
   api.post('/session/end', (req, res) => {
     actor(req);
     const value = token(req)!;
     auth.logout(value);
     realtime.revoke(value);
-    send(res, { signedOut: true }, 'Вы вышли');
+    send(res, { signedOut: true }, 'You are signed out');
   });
   api.post('/teams/start', (req, res) => {
     const created = auth.createTeam(commands.createTeam.parse(req.body));
@@ -135,7 +135,7 @@ export function createApp(options: AppOptions) {
       userIds: [],
       invalidate: ['scoreboard'],
     });
-    send(res, created, 'Команда создана. Сохраните код входа.', 201);
+    send(res, created, 'Team created. Save your sign-in code.', 201);
   });
   api.get('/catalog', (req, res) =>
     send(res, views.catalog(optional(req), commands.catalog.parse(req.query))),
@@ -155,7 +155,7 @@ export function createApp(options: AppOptions) {
   api.post('/tasks/start', (req, res) => {
     const user = actor(req);
     const task = tasks.start(user, commands.start.parse(req.body), key(req));
-    send(res, views.workspace(task.id, user), 'Черновик сохранён', 201);
+    send(res, views.workspace(task.id, user), 'Draft saved', 201);
   });
   api.get('/tasks/:id', (req, res) => send(res, views.detail(id(req), optional(req))));
   api.get('/tasks/:id/workspace', (req, res) => send(res, views.workspace(id(req), actor(req))));
@@ -166,7 +166,7 @@ export function createApp(options: AppOptions) {
     send(
       res,
       views.workspace(task.id, user),
-      'Черновик сохранён. Подтвердите изменения, чтобы обновить балл.',
+      'Draft saved. Confirm the changes to update the score.',
     );
   });
   api.post('/tasks/:id/answers', (req, res) => {
@@ -177,8 +177,8 @@ export function createApp(options: AppOptions) {
       res,
       workspace,
       workspace.clarification?.nextQuestion
-        ? 'Ответ сохранён. Можно перейти к следующему вопросу или вернуться позже.'
-        : 'Ответы сохранены. Проверьте карточку и подтвердите сведения.',
+        ? 'Answer saved. Go to the next question or come back later.'
+        : 'Answers saved. Review the card and confirm the details.',
     );
   });
   api.post('/tasks/:id/analyze', async (req, res) => {
@@ -188,8 +188,8 @@ export function createApp(options: AppOptions) {
       res,
       views.workspace(task.id, user),
       task.analysis?.suggestions.length
-        ? 'Предложения готовы. Проверьте цитаты перед добавлением.'
-        : 'Описание сохранено. Можно заполнить поля вручную или перейти к уточнениям.',
+        ? 'Suggestions are ready. Check the quotes before adding them.'
+        : 'Description saved. Fill in the fields manually or continue to clarifying questions.',
     );
   });
   api.post('/tasks/:id/suggestions/apply', (req, res) => {
@@ -200,61 +200,61 @@ export function createApp(options: AppOptions) {
       res,
       views.workspace(task.id, user),
       input.suggestionIds.length
-        ? 'Выбранные сведения добавлены в черновик. Проверьте карточку перед подтверждением.'
-        : 'Предложения отклонены. Ваши сведения сохранены.',
+        ? 'Selected details added to the draft. Review the card before confirming.'
+        : 'Suggestions dismissed. Your details are kept.',
     );
   });
   api.post('/tasks/:id/clarify', async (req, res) => {
     const user = actor(req);
     const task = await tasks.clarify(user, id(req), commands.version.parse(req.body).expectedVersion);
-    send(res, views.workspace(task.id, user), 'Уточняющие вопросы готовы');
+    send(res, views.workspace(task.id, user), 'Clarifying questions are ready');
   });
   api.post('/tasks/:id/confirm', (req, res) => {
     const user = actor(req);
     const task = tasks.confirm(user, id(req), commands.version.parse(req.body).expectedVersion);
-    send(res, views.workspace(task.id, user), 'Сведения подтверждены, рейтинг пересчитан');
+    send(res, views.workspace(task.id, user), 'Details confirmed, rating recalculated');
   });
   api.post('/tasks/:id/publish', (req, res) => {
     const user = actor(req);
     const task = tasks.publish(user, id(req), commands.version.parse(req.body).expectedVersion);
-    send(res, views.workspace(task.id, user), 'Задача опубликована для всех команд');
+    send(res, views.workspace(task.id, user), 'Task published to all teams');
   });
   api.post('/tasks/:id/proposals', (req, res) => {
     const user = actor(req);
     work.propose(user, id(req), commands.proposal.parse(req.body), key(req));
-    send(res, views.detail(id(req), user), 'Предложение отправлено', 201);
+    send(res, views.detail(id(req), user), 'Proposal sent', 201);
   });
   api.post('/proposals/:id/decision', (req, res) => {
     const user = actor(req);
     const item = work.decide(user, id(req), commands.decision.parse(req.body));
-    send(res, views.review(item.taskId, user), 'Решение сохранено');
+    send(res, views.review(item.taskId, user), 'Decision saved');
   });
   api.post('/tasks/:id/milestones', (req, res) => {
     const user = actor(req);
     const item = work.createMilestone(user, id(req), commands.milestone.parse(req.body), key(req));
-    send(res, views.milestone(item.id, user), 'Этап создан', 201);
+    send(res, views.milestone(item.id, user), 'Milestone created', 201);
   });
   api.get('/milestones/:id', (req, res) => send(res, views.milestone(id(req), actor(req))));
   api.post('/milestones/:id/evidence', async (req, res) => {
     const user = actor(req);
     const item = await work.evidence(user, id(req), commands.evidence.parse(req.body));
-    send(res, views.milestone(item.id, user), 'Результат ожидает проверки бизнеса. Очки ещё не начислены.');
+    send(res, views.milestone(item.id, user), 'The result is awaiting business review. No points awarded yet.');
   });
   api.post('/milestones/:id/decision', (req, res) => {
     const user = actor(req);
     const input = commands.review.parse(req.body);
     const alreadyApproved = work.milestone(id(req)).status === 'approved';
     const item = work.review(user, id(req), input);
-    // GRAND TRIUMPH в 3D-мире — только при первом подтверждении этапа (после записи в SQLite).
+    // GRAND TRIUMPH in the 3D world: only on the first approval of a milestone (after the SQLite write).
     if (item.status === 'approved' && !alreadyApproved) world.triumph(item);
     send(
       res,
       views.milestone(item.id, user),
       item.status === 'approved'
         ? alreadyApproved
-          ? 'Этап уже подтверждён. Повторного начисления нет.'
-          : 'Этап подтверждён. Команде начислено 10 очков.'
-        : 'Этап возвращён на доработку',
+          ? 'Milestone already approved. No points awarded again.'
+          : 'Milestone approved. The team earned 10 points.'
+        : 'Milestone returned for rework',
     );
   });
   app.get('/api/openapi.json', (_req, res) => res.json(openApiDocument));
@@ -267,7 +267,7 @@ export function createApp(options: AppOptions) {
     }),
   );
   app.use('/api/v1', api);
-  app.use('/api', (_req, _res, next) => next(new AppError(404, 'ROUTE_NOT_FOUND', 'API-маршрут не найден')));
+  app.use('/api', (_req, _res, next) => next(new AppError(404, 'ROUTE_NOT_FOUND', 'API route not found')));
   if (options.frontendDist) {
     const root = resolve(options.frontendDist);
     app.use(express.static(root));
@@ -281,17 +281,17 @@ export function createApp(options: AppOptions) {
         const field = issue.path.join('.') || '_form';
         (fields[field] ??= []).push(issue.message);
       }
-      error = new AppError(422, 'VALIDATION_ERROR', 'Проверьте заполненные поля', fields, 'correct_fields');
+      error = new AppError(422, 'VALIDATION_ERROR', 'Check the highlighted fields', fields, 'correct_fields');
     } else if (err instanceof AppError) error = err;
     else if (err instanceof SyntaxError && 'body' in err)
-      error = new AppError(400, 'INVALID_JSON', 'Не удалось прочитать JSON запроса');
+      error = new AppError(400, 'INVALID_JSON', 'Could not parse the request JSON');
     else if (typeof err === 'object' && err !== null && 'type' in err && err.type === 'entity.too.large')
-      error = new AppError(413, 'BODY_TOO_LARGE', 'Слишком большой запрос');
+      error = new AppError(413, 'BODY_TOO_LARGE', 'Request is too large');
     else {
       error = new AppError(
         500,
         'INTERNAL_ERROR',
-        'Не удалось выполнить действие. Повторите запрос.',
+        'Could not complete the action. Please retry.',
         {},
         'retry',
       );
