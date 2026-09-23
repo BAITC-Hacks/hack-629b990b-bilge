@@ -1,24 +1,24 @@
-# План реализации harness и Git
+# Harness and Git implementation plan
 
-> Исполнение: subagent-driven-development, один независимый implementation subagent одновременно, затем spec review и quality review. Авторизация пользователя уже получена.
+> Execution: subagent-driven-development, one independent implementation subagent at a time, followed by spec review and quality review. User authorization has already been obtained.
 
-**Цель:** реализовать дизайн ../specs/2026-09-23-agent-harness-design.md и подтвердить сквозным live-сценарием.
+**Goal:** implement the design in ../specs/2026-09-23-agent-harness-design.md and confirm it with an end-to-end live scenario.
 
-1. Расширить shared contracts: анализ, цитаты, metadata запусков, Git snapshot. Сохранить обратную совместимость сохранённых JSON. Написать проверки границ и источников. Проверить дизайн отдельно.
-2. Git adapter: публичный repo/tree/PR, pinned README и PR patches, bounded reads, частичная выборка и защита от смены head. Изолированные тесты с HTTP fixture + реальный smoke. Владение: integrations/git.ts и новый test/git-materials.test.ts.
-3. AI runtime: gpt-6-luna, low reasoning, structured output, timeout/лимит, metadata и fallback categories. Анализ только цитатами, нейтральные уточнения через серверный каталог, привязка критериев к цитатам материалов. Изолированные тесты SDK transport.
-4. UX и persistence: quality warnings, analyze/apply commands, optimistic version guards, private run history, workspace next actions и milestone hints. Тесты пользовательского пути с in-memory SQLite, конфликтов и приватности.
-5. Обновить клиент/OpenAPI/docs, .env.example и ignored .env без раскрытия ключа. Добавить preflight и eval CLI с минимум 15 случаями и отчётом по реальному режиму/качеству/latency.
-6. Проверка: typecheck, релевантные тесты → весь suite, формат/build, stub HTTP demo, live Luna+Git flow, live evals. Ревью соответствия дизайну, затем ревью качества; исправить значимые замечания. Перезапустить локальный backend, проверить Swagger и health.
-7. Зафиксировать результаты, ограничения и метрики в docs; commit/push в backend/bff после проверки отсутствия секретов в diff. Итог пользователю с возможностями и честными ограничениями.
+1. Extend shared contracts: analysis, quotes, run metadata, Git snapshot. Keep backward compatibility with stored JSON. Write boundary and source checks. Review the design separately.
+2. Git adapter: public repo/tree/PR, pinned README and PR patches, bounded reads, partial sampling and protection against head changes. Isolated tests with an HTTP fixture + a real smoke test. Ownership: integrations/git.ts and a new test/git-materials.test.ts.
+3. AI runtime: gpt-6-luna, low reasoning, structured output, timeout/limit, metadata and fallback categories. Analysis via quotes only, neutral clarifications via the server-side catalog, linking criteria to material quotes. Isolated SDK transport tests.
+4. UX and persistence: quality warnings, analyze/apply commands, optimistic version guards, private run history, workspace next actions and milestone hints. User-path tests with in-memory SQLite, conflicts and privacy.
+5. Update the client/OpenAPI/docs, .env.example and the ignored .env without exposing the key. Add preflight and an eval CLI with at least 15 cases and a report on real mode/quality/latency.
+6. Verification: typecheck, relevant tests → full suite, format/build, stub HTTP demo, live Luna+Git flow, live evals. Design compliance review, then quality review; fix significant findings. Restart the local backend, check Swagger and health.
+7. Record results, limitations and metrics in docs; commit/push to backend/bff after checking the diff for secrets. Summary for the user with capabilities and honest limitations.
 
-## Результат исполнения
+## Execution result
 
-- Реализованы пункты 1–5: Luna runtime, анализ цитат, применение/отклонение, качество карточки, приватная история, настоящие материалы GitHub, клиент и 26 операций OpenAPI.
-- Spec review и последующее quality review завершены. Исправлены ссылки patch на pinned comparison, статус нерассмотренных критериев и прогресс уточнений после применения цитат.
-- Обнаружен и исправлен отдельный UX-дефект: «Пока не знаю» раньше давало баллы за текстовое поле. Регрессия сначала воспроизвела 25 лишних баллов, затем прошла после исправления.
-- Live preflight: gpt-6-luna доступна; публичные repository и PR прочитаны с SHA и материалами без GITHUB_TOKEN.
-- Live HTTP demo: анализ → выбор цитат → уточнения → публикация → два отклика → Git → проверка с цитатами → ручная приёмка; начисление 10 баллов однократно, 3 приватных AI-run в истории.
-- Live eval: [45/45 сценариев, 0 fallback, p50 2781 мс, p95 4853 мс](../../evals/live-harness-report.json). Это ограниченный набор регрессий извлечения, не полная оценка смыслового качества или удобства интерфейса.
-- Пользователь делегировал решение по приватному Git: оставлена автоматическая проверка публичных repo/PR; приватные ссылки принимаются для ручной проверки. Сам репозиторий проекта остаётся приватным.
-- Локальный backend работает на 127.0.0.1:3001 с Luna; Swagger и health проверены через браузер. Фронтенд/3D остаются зоной разработчика A.
+- Items 1–5 implemented: Luna runtime, quote analysis, apply/reject, card quality, private history, real GitHub materials, client and 26 OpenAPI operations.
+- Spec review and the subsequent quality review are complete. Fixed patch links to the pinned comparison, the status of unassessed criteria and clarification progress after applying quotes.
+- A separate UX defect was found and fixed: "Don't know yet" previously gave points for a text field. The regression first reproduced 25 extra points, then passed after the fix.
+- Live preflight: gpt-6-luna is available; public repositories and PRs were read with SHA and materials without GITHUB_TOKEN.
+- Live HTTP demo: analysis → quote selection → clarifications → publication → two proposals → Git → check with quotes → manual acceptance; 10 points awarded once, 3 private AI runs in the history.
+- Live eval: [45/45 scenarios, 0 fallback, p50 2781 ms, p95 4853 ms](../../evals/live-harness-report.json). This is a limited set of extraction regressions, not a full evaluation of semantic quality or interface usability.
+- The user delegated the decision on private Git: automatic checking of public repos/PRs is kept; private links are accepted for manual review. The project repository itself remains private.
+- The local backend runs on 127.0.0.1:3001 with Luna; Swagger and health were checked in the browser. Frontend/3D remain developer A's area.
