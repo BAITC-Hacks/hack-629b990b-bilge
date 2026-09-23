@@ -1,5 +1,5 @@
-// Вспомогательные элементы внутри Canvas, которые пишут прямо в DOM (без перерисовки React каждый кадр):
-// стрелка «СОЮЗНИК 42 м →», измерения для ?debug3d=1, визуализация участков и коллайдеров.
+// Helpers inside the Canvas that write straight to the DOM (no React re-render every frame):
+// the "TEAMMATE 42 m →" arrow, ?debug3d=1 metrics, plot and collider visualization.
 import { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -9,7 +9,7 @@ import { AMBIENT_LABEL } from '../events/WorldEventManager';
 import { DISTRICT_LABEL, districtAt, type WorldLayout } from '../world/WorldLayout';
 import type { MultiplayerManager } from '../multiplayer/MultiplayerManager';
 
-/** Если ближайший союзник дальше 30 м — стрелка у края экрана в его сторону. */
+/** If the nearest teammate is farther than 30 m — an arrow at the screen edge pointing their way. */
 export function TeammateCompass({ store, myTeamId, me, el }: { store: PresenceStore; myTeamId: string | null; me: React.MutableRefObject<THREE.Vector3>; el: React.RefObject<HTMLDivElement | null> }) {
   const { camera, size } = useThree();
   const v = useMemo(() => new THREE.Vector3(), []);
@@ -37,7 +37,7 @@ export function TeammateCompass({ store, myTeamId, me, el }: { store: PresenceSt
     const py = (Math.max(-0.85, Math.min(0.85, -sy * (onScreen ? 1 : k))) * 0.5 + 0.5) * size.height;
     box.style.display = 'flex';
     box.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%)`;
-    box.querySelector('span')!.textContent = `${best.name} · ${Math.round(best.d)} м`;
+    box.querySelector('span')!.textContent = `${best.name} · ${Math.round(best.d)} m`;
     (box.querySelector('i') as HTMLElement).style.transform = `rotate(${ang}rad)`;
   });
   return null;
@@ -58,9 +58,9 @@ export function DebugProbe({ el, store, events, net, me, selected }: { el: React
     const p = me.current;
     el.current.textContent = [
       `FPS ${a.fps}`,
-      `draw calls ${info.calls} · triangles ${info.triangles.toLocaleString('ru')}`,
+      `draw calls ${info.calls} · triangles ${info.triangles.toLocaleString('en')}`,
       `online ${store.players.size} · connected ${store.connected}`,
-      `net: send ${net.current?.sentPerSec ?? 0}/s · recv ${store.ticksPerSec}/s (tick ${store.netHz} Гц)`,
+      `net: send ${net.current?.sentPerSec ?? 0}/s · recv ${store.ticksPerSec}/s (tick ${store.netHz} Hz)`,
       `pos ${p.x.toFixed(1)}, ${p.z.toFixed(1)} · ${DISTRICT_LABEL[districtAt(p.x, p.z)]}`,
       `selected ${selected ?? '—'}`,
       `events: ${events.ambient.map((e) => AMBIENT_LABEL[e.kind]).join(', ') || '—'}${events.triumph ? ' · TRIUMPH' : ''}`,
@@ -70,7 +70,7 @@ export function DebugProbe({ el, store, events, net, me, selected }: { el: React
   return null;
 }
 
-/** Участки (занятые — бирюзовые, свободные — серые, резерв — пунктир) и коллайдеры. */
+/** Plots (occupied — teal, free — gray, reserve — amber) and colliders. */
 export function DebugOverlay({ layout }: { layout: WorldLayout }) {
   const used = new Set(layout.placements.map((p) => p.plot.id));
   return (
