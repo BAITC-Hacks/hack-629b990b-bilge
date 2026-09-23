@@ -1,12 +1,12 @@
-// Состояние онлайн-игроков на клиенте. Позиции хранятся в буферах интерполяции (вне React),
-// список игроков и их личность — в подписываемом хранилище (React перерисовывается только при входе/выходе/смене данных).
+// Client-side state of online players. Positions live in interpolation buffers (outside React);
+// the player list and identities live in a subscribable store (React re-renders only on join/leave/data change).
 import type { Emote, PlayerPresence, PlayerTick } from '../../shared/types';
 import { InterpBuffer } from './NetworkInterpolation';
 
 export interface RemoteState {
   presence: PlayerPresence;
   buffer: InterpBuffer;
-  /** Текущая социальная анимация до момента until (мс, серверное время отправки ≈ локальное) */
+  /** Current social animation until `until` (ms, server send time ≈ local time) */
   action: { name: Emote; until: number } | null;
 }
 
@@ -19,7 +19,7 @@ export class PresenceStore {
   connected = false;
   error: string | null = null;
   netHz = 12;
-  /** Сколько пакетов состояния пришло за последнюю секунду (для ?debug3d=1). */
+  /** How many state packets arrived in the last second (for ?debug3d=1). */
   ticksPerSec = 0;
   private tickCount = 0;
   private listeners = new Set<Listener>();
@@ -68,7 +68,7 @@ export class PresenceStore {
   action(userId: string, name: Emote, until: number) {
     const st = this.players.get(userId);
     if (!st) return;
-    // сервер присылает until в своём времени; переводим в длительность
+    // the server sends `until` in its own clock; convert it to a duration
     const dur = Math.max(500, Math.min(5000, until - Date.now()));
     st.action = { name, until: performance.now() + dur };
   }
