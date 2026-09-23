@@ -53,8 +53,8 @@ try {
   const team2 = (await login('demo-student-2')).token as string;
   let workspace = await call('/tasks/start', business, {
     rawDescription:
-      'В кафе остаётся много непроданной еды. Пользователи: менеджер кафе. Источник данных: CSV продаж и списаний. Ожидаемый результат: прототип прогноза закупок.',
-    industry: 'Общепит',
+      'The cafe is left with a lot of unsold food. Users: the cafe manager. Data source: CSV of sales and write-offs. Expected result: a purchase forecast prototype.',
+    industry: 'Food service',
   });
   const id = workspace.task.id;
   workspace = await call(`/tasks/${id}/analyze`, business, { expectedVersion: workspace.task.version });
@@ -84,18 +84,18 @@ try {
     expectedVersion: workspace.task.version,
     fields: {
       ...emptyFields(),
-      title: 'Прогноз закупок для кафе',
-      industry: 'Общепит',
-      context: 'Остаётся непроданная еда',
-      need: 'Сократить списания',
-      users: 'Менеджер кафе',
+      title: 'Cafe purchase forecast',
+      industry: 'Food service',
+      context: 'Unsold food is left over',
+      need: 'Reduce write-offs',
+      users: 'Cafe manager',
       dataAvailability: 'available',
-      dataSource: 'CSV продаж и списаний за три месяца',
-      expectedResult: 'Прототип прогноза закупок',
-      acceptanceCriteria: 'Загрузить CSV и показать прогноз по блюдам',
-      constraints: 'Две недели',
+      dataSource: 'CSV of sales and write-offs for three months',
+      expectedResult: 'A purchase forecast prototype',
+      acceptanceCriteria: 'Upload a CSV and show a forecast per dish',
+      constraints: 'Two weeks',
       contact: 'demo@example.test',
-      interactionFormat: 'Два созвона в неделю',
+      interactionFormat: 'Two calls per week',
     },
   });
   workspace = await call(`/tasks/${id}/confirm`, business, { expectedVersion: workspace.task.version });
@@ -103,22 +103,22 @@ try {
   workspace = await call(`/tasks/${id}/publish`, business, { expectedVersion: workspace.task.version });
   for (const token of [team1, team2])
     await call(`/tasks/${id}/proposals`, token, {
-      idea: 'Прогнозировать спрос по продажам',
-      plan: 'Проанализировать данные и показать прототип',
-      estimatedTime: 'Две недели',
+      idea: 'Forecast demand from sales',
+      plan: 'Analyze the data and show a prototype',
+      estimatedTime: 'Two weeks',
       prototypeUrl: 'https://github.com/openai/openai-node',
     });
   const desk = await call(`/tasks/${id}/review`, business);
   for (const p of desk.proposals)
     await call(`/proposals/${p.id}/decision`, business, { expectedVersion: p.version, decision: 'select' });
   const phase = await call(`/tasks/${id}/milestones`, team1, {
-    title: 'Прогноз на примере',
-    acceptanceCriteria: 'Показать пример вызова OpenAI API\nПоказать CSV и прогноз по блюдам',
+    title: 'Forecast on a sample',
+    acceptanceCriteria: 'Show an example OpenAI API call\nShow the CSV and a forecast per dish',
   });
   const submitted = await call(`/milestones/${phase.milestone.id}/evidence`, team1, {
     expectedVersion: phase.milestone.version,
     evidenceUrl: 'https://github.com/openai/openai-node',
-    description: 'Подготовлена демонстрация загрузки и отображения прогноза',
+    description: 'Prepared a demo of uploading data and displaying the forecast',
   });
   if (live && submitted.milestone.evidence.status !== 'verified')
     throw new Error('Live Git metadata was not verified');
