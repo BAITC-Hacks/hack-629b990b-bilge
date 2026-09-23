@@ -8,7 +8,7 @@ export function TaskPage() {
     <>
       <Header />
       <main className="page narrow">
-        <p><Link to="/list">← Все задачи</Link> · <Link to={`/world?open=${encodeURIComponent(id)}`}>Показать в 3D-мире</Link></p>
+        <p><Link to="/list">← All tasks</Link> · <Link to={`/world?open=${encodeURIComponent(id)}`}>Show in 3D world</Link></p>
         <TaskPanel taskId={id} />
       </main>
     </>
