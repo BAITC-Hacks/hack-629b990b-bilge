@@ -1,39 +1,39 @@
-# Ревью сценариев бизнеса и группы
+# Review of business and team scenarios
 
-Дата: 2026-09-23. Проверена текущая версия backend/BFF после harness, а не только diff последнего коммита. Два независимых ревью: соответствие требованиям со стороны бизнеса и реализация со стороны группы. Использованы эвристики понятности статуса, контроля, предотвращения ошибок и восстановления. Пользовательские истории воспроизведены через HTTP в изолированной SQLite; данные локальной демонстрации не менялись.
+Date: 2026-09-23. The current version of the backend/BFF after the harness was reviewed, not just the diff of the last commit. Two independent reviews: requirements compliance from the business side and implementation from the team side. Heuristics for status clarity, control, error prevention and recovery were used. User stories were reproduced over HTTP on an isolated SQLite database; the local demo data was not changed.
 
-Это экспертная проверка сценариев и данных экранов. Она не заменяет наблюдение за реальными пользователями и проверку готового визуального интерфейса разработчика A.
+This is an expert review of scenarios and screen data. It does not replace observing real users or reviewing developer A's finished visual interface.
 
-## Соответствие требованиям — бизнес
+## Requirements compliance — business
 
-| Приоритет UX (0–4) | Найдено | Исправление и результат |
+| UX priority (0–4) | Found | Fix and result |
 |---|---|---|
-| 3 | Отрасль `IT` сохранялась, но блокировала подтверждение с ошибкой «Укажите отрасль» | Название и отрасль проверяются отдельно от описательных полей оценки. Осмысленные значения от двух символов проходят подтверждение и публикацию. |
-| 2 | После отмены выбора группы кабинет продолжал показывать этап «на проверке», хотя решить по нему ничего нельзя | `pendingReviews` учитывает только выбранные группы. Приостановленные этапы выделены в `pausedMilestones`, состояние совпадает с карточкой и доступными действиями. |
-| 2 | Возврат без объяснения не указывал, какое поле исправить | `FEEDBACK_REQUIRED` содержит `fieldErrors.feedback` и `recovery=correct_fields`. Введённые данные не нужно терять. |
+| 3 | The industry `IT` was saved but blocked confirmation with the error "Specify the industry" | Title and industry are validated separately from the scored descriptive fields. Meaningful values of two or more characters pass confirmation and publication. |
+| 2 | After a team was deselected, the dashboard kept showing the milestone as "in review", although nothing could be decided on it | `pendingReviews` counts only selected teams. Paused milestones are listed separately in `pausedMilestones`; the state matches the card and the available actions. |
+| 2 | Returning without an explanation did not indicate which field to fix | `FEEDBACK_REQUIRED` contains `fieldErrors.feedback` and `recovery=correct_fields`. Entered data does not have to be lost. |
 
-Все три дефекта существовали до последнего harness-коммита и проявились при проверке полного пути. Новых нарушений правил ручного подтверждения или изоляции данных не найдено.
+All three defects existed before the last harness commit and surfaced when checking the full path. No new violations of the manual confirmation rules or data isolation were found.
 
-## Реализация и UX — группа
+## Implementation and UX — team
 
-| Приоритет UX (0–4) | Найдено | Исправление и результат |
+| UX priority (0–4) | Found | Fix and result |
 |---|---|---|
-| 2 | После выбора группы карточка продолжала вести к отклику, не указывая переход к работе | `participation` показывает свой статус и адресованный следующий шаг: кабинет, создание этапа, существующий этап или замечания. Дополнительные предложения остаются доступны. |
-| 2 | После повторной сдачи исчезали прошлые замечания бизнеса | Приватные `reviewHistory` (до 20 решений) и `previousFeedback` сохраняют контекст доработки. Повторное подтверждение не дублирует историю. Старые замечания без даты сохраняются с явным `null`. |
-| 2 | Общая инструкция обещала повтор AI-проверки уже отправленного и заблокированного этапа | Документация различает повтор разбора/уточнений и ручную проверку сданного этапа. `reviewNotice` поясняет, что материалы сохранены; повторная сдача возможна после возврата. |
+| 2 | After a team was selected, the card kept leading to the proposal form without pointing to the transition to work | `participation` shows the team's own status and an addressed next step: dashboard, milestone creation, existing milestone or comments. Additional proposals remain available. |
+| 2 | After resubmission, previous business comments disappeared | Private `reviewHistory` (up to 20 decisions) and `previousFeedback` preserve the rework context. A repeated confirmation does not duplicate the history. Old comments without a date are kept with an explicit `null`. |
+| 2 | The general instructions promised a repeat AI check of an already submitted and locked milestone | The documentation distinguishes repeating analysis/clarifications from the manual review of a submitted milestone. `reviewNotice` explains that the materials are saved; resubmission is possible after it is returned. |
 
-Отдельных последствий code-smell эвристик, требующих рефакторинга, не обнаружено. Найденные изменения относятся к понятности контракта, а не к косметике кода.
+No separate consequences of code-smell heuristics requiring refactoring were found. The changes found concern contract clarity, not code cosmetics.
 
-## Дополнительные исправления при проходе сценария
+## Additional fixes during the scenario walkthrough
 
-- Бизнес в черновике этапа получал инструкцию «Добавьте Git», хотя это действие группы. Теперь подсказки соответствуют роли.
-- Повторный `approve` показывал уведомление о начислении ещё 10 очков. Начисление уже было защищено на сервере; теперь текст тоже говорит, что повторного начисления нет.
-- Кабинет бизнеса предлагает сначала проверить результаты, затем рассмотреть отклики, затем продолжить карточку.
+- In a draft milestone, the business received the instruction "Add Git", although this is a team action. Hints now match the role.
+- A repeated `approve` showed a notification about awarding another 10 points. The award was already protected on the server; now the text also says there is no repeated award.
+- The business dashboard suggests first reviewing results, then considering proposals, then continuing the card.
 
-## Проверяемые гарантии
+## Verifiable guarantees
 
-Новые HTTP-регрессии в `backend/test/consumer-journeys.test.ts` сначала воспроизвели семь ошибочных сценариев, затем прошли после исправлений: короткая отрасль; навигация группы; отмена/повторный выбор; ошибка формы возврата; сохранение истории и её приватность; подсказки по ролям/fallback; повторное подтверждение без новых баллов. История и замечания не появляются у другой группы или в публичной карточке.
+New HTTP regressions in `backend/test/consumer-journeys.test.ts` first reproduced seven faulty scenarios, then passed after the fixes: short industry; team navigation; deselection/reselection; return form error; history retention and its privacy; role/fallback hints; repeated confirmation without new points. The history and comments do not appear for another team or in the public card.
 
-Финальная проверка: **169 тестов в 10 файлах**, TypeScript, Prettier и сборка проходят; HTTP demo в stub/mock завершён с однократным начислением 10 очков. Независимые повторные проверки дополнительно подтвердили маршрутизацию двух разных команд к своим этапам, сохранение ровно 20 последних решений, перенос старых замечаний без даты и отсутствие приостановки при отмене только одного из нескольких выбранных предложений.
+Final check: **169 tests in 10 files**, TypeScript, Prettier and the build pass; the HTTP demo in stub/mock completed with a one-time award of 10 points. Independent repeat checks additionally confirmed routing of two different teams to their own milestones, retention of exactly the 20 most recent decisions, carry-over of old undated comments, and no pausing when only one of several selected proposals is deselected.
 
-Фронтенду нужно подключить новые поля по [инструкции интеграции](backend-integration.md). На готовом UI остаётся проверить читаемость, мобильный ввод, фокус после ошибок, сохранение набранного текста при ожидании и реальные переходы между экранами. Редактирование уже созданных откликов/условий этапа и серверные черновики несданных материалов остаются отдельными улучшениями; текущий MVP поддерживает новые предложения и повторную сдачу после возврата.
+The frontend needs to wire up the new fields according to the [integration guide](backend-integration.md). On the finished UI it remains to check readability, mobile input, focus after errors, preservation of typed text while waiting, and real transitions between screens. Editing already created proposals/milestone conditions and server-side drafts of unsubmitted materials remain separate improvements; the current MVP supports new proposals and resubmission after a return.
