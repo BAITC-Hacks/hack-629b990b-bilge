@@ -1,16 +1,16 @@
-// Общее состояние вкладки: снимок BFF (bootstrap + каталог + кабинет + рейтинг) и данные мира.
-// Перечитывается при подключении сокета и по событиям invalidate/sync.required (debounce 50 мс, как в памятке BFF).
+// Shared tab state: the BFF snapshot (bootstrap + catalog + dashboard + leaderboard) and world data.
+// Re-fetched on socket connect and on invalidate/sync.required events (50 ms debounce, as in the BFF notes).
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ApiError, api, getSocket, getToken, setToken, type SnapshotView, type WorldView } from './api';
 
 interface Ctx {
   snap: SnapshotView | null;
   world: WorldView | null;
-  /** Счётчик изменений: открытые детальные экраны перечитываются при его росте. */
+  /** Change counter: open detail screens re-fetch when it grows. */
   revision: number;
   refresh: () => Promise<void>;
   toast: (text: string, kind?: 'ok' | 'err' | 'info') => void;
-  /** Выполнить команду BFF: сообщение сервера (feedback) или ошибка с полями показываются пользователю. */
+  /** Run a BFF command: the server message (feedback) or a field error is shown to the user. */
   run: <T>(fn: () => Promise<T>, okText?: string) => Promise<T | undefined>;
   fieldErrors: Record<string, string[]>;
   clearFieldErrors: () => void;
@@ -43,10 +43,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       if (e instanceof ApiError && (e.code === 'SESSION_EXPIRED' || e.code === 'INVALID_SESSION')) {
         setToken(null);
-        toast('Сессия завершена. Войдите снова.', 'info');
+        toast('Session ended. Please sign in again.', 'info');
         const s = await api.snapshot().catch(() => null);
         if (s) setSnap(s.data);
-      } else toast(e instanceof ApiError ? e.message : 'Сервер недоступен', 'err');
+      } else toast(e instanceof ApiError ? e.message : 'Server unavailable', 'err');
     }
   }, [toast]);
 
@@ -75,7 +75,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setFieldErrors(e.fieldErrors ?? {});
         toast(e.message, 'err');
         if (e.code === 'SESSION_EXPIRED') setToken(null);
-      } else toast('Не удалось выполнить действие. Попробуйте ещё раз.', 'err');
+      } else toast('Could not complete the action. Please try again.', 'err');
       return undefined;
     }
   }, [toast]);
@@ -92,7 +92,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useApp(): Ctx {
   const c = useContext(AppCtx);
-  if (!c) throw new Error('AppProvider отсутствует');
+  if (!c) throw new Error('AppProvider is missing');
   return c;
 }
 
@@ -107,7 +107,7 @@ export function usePrefersReducedMotion(): boolean {
   return r;
 }
 
-/** Ошибки полей BFF: ключи вида 'fields.title', 'title', '_form'. */
+/** BFF field errors: keys like 'fields.title', 'title', '_form'. */
 export function useFieldError(field: string): string | null {
   const { fieldErrors } = useApp();
   const list = fieldErrors[field] ?? fieldErrors[`fields.${field}`];
