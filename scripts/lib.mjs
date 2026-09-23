@@ -1,4 +1,4 @@
-// Общие помощники скриптов запуска/проверки (без внешних зависимостей, Node >= 22.12, macOS/Linux/Windows).
+// Shared helpers for the start/check scripts (no external dependencies, Node >= 22.12, macOS/Linux/Windows).
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -24,12 +24,12 @@ export function step(title) {
 export function checkNode() {
   const [maj, min] = process.versions.node.split('.').map(Number);
   if (maj < 22 || (maj === 22 && min < 12)) {
-    console.error(c.bad(`Нужен Node.js 22.12 или новее (сейчас ${process.versions.node}). https://nodejs.org`));
+    console.error(c.bad(`Node.js 22.12 or newer is required (current: ${process.versions.node}). https://nodejs.org`));
     process.exit(1);
   }
 }
 
-/** Запуск команды с выводом в консоль; возвращает код выхода. */
+/** Runs a command with output to the console; returns the exit code. */
 export function run(cmd, args, cwd, env = {}) {
   const exe = cmd === 'npm' ? npm : cmd;
   const r = spawnSync(exe, args, { cwd, stdio: 'inherit', env: { ...process.env, ...env }, shell: isWin });
@@ -37,12 +37,12 @@ export function run(cmd, args, cwd, env = {}) {
 }
 export function must(code, what) {
   if (code !== 0) {
-    console.error(c.bad(`\n✖ Не удалось: ${what}`));
+    console.error(c.bad(`\n✖ Failed: ${what}`));
     process.exit(code || 1);
   }
 }
 
-/** Установка зависимостей по lock-файлу (один раз). */
+/** Installs dependencies from the lock file (once). */
 export function install(dir) {
   if (existsSync(path.join(dir, 'node_modules', '.package-lock.json'))) return 0;
   const lock = existsSync(path.join(dir, 'package-lock.json'));
@@ -50,8 +50,8 @@ export function install(dir) {
 }
 
 /**
- * Lock-файл бэкенда собран на Windows: на macOS/Linux npm не ставит нативный модуль rolldown (нужен vitest).
- * Доустанавливаем его для текущей платформы без изменения package.json/package-lock.
+ * The backend lock file was generated on Windows: on macOS/Linux npm does not install the rolldown native module (needed by vitest).
+ * We install it for the current platform without changing package.json/package-lock.
  */
 export function ensureRolldown(dir) {
   const pkg = path.join(dir, 'node_modules', 'rolldown', 'package.json');
@@ -63,7 +63,7 @@ export function ensureRolldown(dir) {
   return run('npm', ['i', '--no-save', '--no-audit', '--no-fund', `${name}@${version}`], dir);
 }
 
-/** Фоновый процесс сервера. */
+/** Background server process. */
 export function startServer(env, { quiet = false, cwd = BACKEND } = {}) {
   const tsx = path.join(BACKEND, 'node_modules', '.bin', isWin ? 'tsx.cmd' : 'tsx');
   return spawn(tsx, [path.join(BACKEND, 'src', 'server.ts')], {
@@ -81,7 +81,7 @@ export async function waitHealth(base, timeoutMs = 40000) {
       const r = await fetch(`${base}/api/v1/health`);
       if (r.ok) return true;
     } catch {
-      /* ещё стартует */
+      /* still starting */
     }
     await new Promise((r) => setTimeout(r, 500));
   }
