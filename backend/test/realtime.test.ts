@@ -22,7 +22,7 @@ beforeEach(async () => {
   });
   sockets = [];
   runtime.auth.addUser(
-    { id: 'business', role: 'business', displayName: 'Кафе', teamId: null },
+    { id: 'business', role: 'business', displayName: 'Cafe', teamId: null },
     'realtime-code',
   );
   business = runtime.auth.login('realtime-code').token;
@@ -56,7 +56,7 @@ it('sends private draft updates only to owner, public publication to both, and r
   const start = await request(runtime.app)
     .post('/api/v1/tasks/start')
     .auth(business, { type: 'bearer' })
-    .send({ rawDescription: 'Списания в кафе', industry: 'Общепит' });
+    .send({ rawDescription: 'Food write-offs at the cafe', industry: 'Food service' });
   await ownEvent;
   expect(privateEvents).toHaveLength(0);
   const id = start.body.data.task.id;
@@ -89,7 +89,7 @@ it('refreshes the open scoreboard when a new team joins without exposing its cod
   const guest = await connect();
   const events: unknown[] = [];
   guest.on('invalidate', (event) => events.push(event));
-  const created = await request(runtime.app).post('/api/v1/teams/start').send({ name: 'Новая команда' });
+  const created = await request(runtime.app).post('/api/v1/teams/start').send({ name: 'New team' });
   expect(created.status).toBe(201);
   await expect.poll(() => events.length, { timeout: 1000 }).toBe(1);
   expect(events[0]).toMatchObject({
@@ -101,25 +101,25 @@ it('refreshes the open scoreboard when a new team joins without exposing its cod
   expect(JSON.stringify(events)).not.toContain(created.body.data.code);
   expect(JSON.stringify(events)).not.toContain(created.body.data.token);
   expect((await request(runtime.app).get('/api/v1/scoreboard')).body.data.teams[0].name).toBe(
-    'Новая команда',
+    'New team',
   );
 });
 it('refreshes public pending markers on submission and return while keeping evidence private', async () => {
   const post = (token: string, path: string, body: object) =>
     request(runtime.app).post(`/api/v1${path}`).auth(token, { type: 'bearer' }).send(body);
-  const team = await request(runtime.app).post('/api/v1/teams/start').send({ name: 'Команда' });
+  const team = await request(runtime.app).post('/api/v1/teams/start').send({ name: 'Team' });
   const token = team.body.data.token;
   const start = await post(business, '/tasks/start', {
-    rawDescription: 'Списания кафе',
-    industry: 'Общепит',
+    rawDescription: 'Cafe write-offs',
+    industry: 'Food service',
   });
   const taskId = start.body.data.task.id;
   const confirmed = await post(business, `/tasks/${taskId}/confirm`, { expectedVersion: 1 });
   await post(business, `/tasks/${taskId}/publish`, { expectedVersion: confirmed.body.data.task.version });
   const proposed = await post(token, `/tasks/${taskId}/proposals`, {
-    idea: 'Прогноз',
-    plan: 'Прототип',
-    estimatedTime: 'Неделя',
+    idea: 'Forecast',
+    plan: 'Prototype',
+    estimatedTime: 'One week',
     prototypeUrl: 'https://example.com',
   });
   const proposal = proposed.body.data.myProposals[0];
@@ -128,8 +128,8 @@ it('refreshes public pending markers on submission and return while keeping evid
     decision: 'select',
   });
   const created = await post(token, `/tasks/${taskId}/milestones`, {
-    title: 'Прогноз',
-    acceptanceCriteria: 'Проверка CSV',
+    title: 'Forecast',
+    acceptanceCriteria: 'CSV check',
   });
   const stage = created.body.data.milestone;
   const guest = await connect();
@@ -141,7 +141,7 @@ it('refreshes public pending markers on submission and return while keeping evid
   const submitted = await post(token, `/milestones/${stage.id}/evidence`, {
     expectedVersion: stage.version,
     evidenceUrl: 'https://github.com/example/private-work',
-    description: 'Личные материалы команды',
+    description: 'Private team materials',
   });
   expect(submitted.status).toBe(200);
   await expect.poll(() => events.length, { timeout: 1000 }).toBe(1);
@@ -151,12 +151,12 @@ it('refreshes public pending markers on submission and return while keeping evid
   const returned = await post(business, `/milestones/${stage.id}/decision`, {
     expectedVersion: submitted.body.data.milestone.version,
     decision: 'return',
-    feedback: 'Приватный комментарий бизнеса',
+    feedback: 'Private business comment',
   });
   expect(returned.status).toBe(200);
   await expect.poll(() => events.length, { timeout: 1000 }).toBe(2);
   expect(events[1]!.type).toBe('milestone.decided');
-  expect(JSON.stringify(events)).not.toMatch(/Личные материалы|Приватный комментарий|private-work/);
+  expect(JSON.stringify(events)).not.toMatch(/Private team materials|Private business comment|private-work/);
   expect(
     (await request(runtime.app).get('/api/v1/catalog')).body.data.world.stations[0].pendingMilestones,
   ).toBe(0);
