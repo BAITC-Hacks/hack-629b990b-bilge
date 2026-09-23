@@ -1,4 +1,4 @@
-// Сравнение откликов и результатов (GET /tasks/:id/review): бизнес вручную выбирает или отклоняет команды.
+// Application and result comparison (GET /tasks/:id/review): the business manually selects or rejects teams.
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, type ReviewView } from '../api';
@@ -11,18 +11,18 @@ export function ReviewDesk() {
   const [view, setView] = useState<ReviewView | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   useEffect(() => { void run(() => api.reviewDesk(id)).then((r) => r && setView(r.data)); }, [id, revision]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!view) return <><Header /><main className="page"><p className="muted">Загрузка откликов…</p></main></>;
+  if (!view) return <><Header /><main className="page"><p className="muted">Loading applications…</p></main></>;
   return (
     <>
       <Header />
       <main className="page">
-        <div className="kicker"><Link to="/dashboard">Мои задачи</Link> · <Link to={`/business/tasks/${id}`}>Конструктор</Link></div>
+        <div className="kicker"><Link to="/dashboard">My tasks</Link> · <Link to={`/business/tasks/${id}`}>Task builder</Link></div>
         <h1>{view.task.title}</h1>
         <p className="muted">{view.selectionPolicy}</p>
         <div className="grid2 top">
           <section>
-            <h2>Отклики ({view.proposals.length})</h2>
-            {view.proposals.length === 0 && <p className="muted">Пока нет откликов.</p>}
+            <h2>Applications ({view.proposals.length})</h2>
+            {view.proposals.length === 0 && <p className="muted">No applications yet.</p>}
             {view.proposals.map((p) => (
               <div key={p.id} className={`prop st-${p.status}`}>
                 <div className="row between"><b className="row"><i className="team-dot" style={{ background: p.team.color }} />{p.team.name}</b><span className={`badge st-${p.status}`}>{p.statusLabel}</span></div>
@@ -34,8 +34,8 @@ export function ReviewDesk() {
                     </div>
                   ))}
                 </dl>
-                {p.decisionNote && <div className="small muted">Ваш комментарий: {p.decisionNote}</div>}
-                <input placeholder="Комментарий команде (необязательно)" value={notes[p.id] ?? ''} onChange={(e) => setNotes({ ...notes, [p.id]: e.target.value })} />
+                {p.decisionNote && <div className="small muted">Your comment: {p.decisionNote}</div>}
+                <input placeholder="Comment for the team (optional)" value={notes[p.id] ?? ''} onChange={(e) => setNotes({ ...notes, [p.id]: e.target.value })} />
                 <div className="row" style={{ marginTop: 6 }}>
                   {p.actions.map((a) => (
                     <button key={a.id} className={`btn small ${a.id === 'reject' ? 'ghost' : ''}`} disabled={!a.enabled} title={a.reason ?? ''}
@@ -48,8 +48,8 @@ export function ReviewDesk() {
             ))}
           </section>
           <section>
-            <h2>Этапы команд</h2>
-            {view.milestones.length === 0 && <p className="muted">Выбранные команды ещё не создали этапы.</p>}
+            <h2>Team milestones</h2>
+            {view.milestones.length === 0 && <p className="muted">Selected teams haven't created milestones yet.</p>}
             {view.milestones.map((m) => (
               <div key={m.id} className="milestone">
                 <Link to={`/milestones/${m.id}`}><b>{m.teamName}: {m.title}</b></Link> — <span className={`badge ms-${m.status}`}>{m.statusLabel}</span>
