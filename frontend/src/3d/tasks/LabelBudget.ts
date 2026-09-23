@@ -1,5 +1,5 @@
-// Бюджет подписей задач: чтобы экран не превращался в «кашу», подписи раздаются по близости к игроку.
-// full — одна ближайшая (и выбранная/под курсором), mini — несколько ближайших, chip — значок уровня, остальные — только маяк.
+// Task label budget: to keep the screen from turning into "mush", labels are assigned by proximity to the player.
+// full — the single nearest (plus selected/hovered), mini — a few nearest, chip — a level badge, the rest — beacon only.
 import type * as THREE from 'three';
 
 export type LabelLod = 'full' | 'mini' | 'chip' | 'hidden';
@@ -17,7 +17,7 @@ export class LabelBudget {
     return () => { this.positions.delete(id); this.listeners.delete(id); this.lods.delete(id); };
   }
 
-  /** Пересчёт (несколько раз в секунду): ранжирование по расстоянию до игрока. */
+  /** Recalculation (several times per second): ranking by distance to the player. */
   update(player: THREE.Vector3, forced: Set<string>) {
     const list = [...this.positions.entries()].map(([id, p]) => ({ id, d: Math.hypot(p.x - player.x, p.z - player.z) })).sort((a, b) => a.d - b.d);
     let mini = 0, chip = 0;
