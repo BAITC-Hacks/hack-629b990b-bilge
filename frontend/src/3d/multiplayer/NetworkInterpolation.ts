@@ -1,10 +1,10 @@
-// Буфер интерполяции удалённого игрока: показываем состояние «чуть в прошлом» (задержка ~2 сетевых тика),
-// плавно переходя между двумя последними серверными позициями. Большой разрыв — мягкая коррекция, не телепорт.
+// Remote player interpolation buffer: we show the state "slightly in the past" (a delay of ~2 network ticks),
+// smoothly blending between the two latest server positions. A large gap gets a soft correction, not a teleport.
 export interface Sample { t: number; x: number; z: number; r: number }
 
 export const INTERP_DELAY_MS = 170;
 const MAX_SAMPLES = 20;
-/** Разрыв, после которого включается ускоренная коррекция (м). */
+/** Gap beyond which accelerated correction kicks in (m). */
 export const SNAP_DISTANCE = 14;
 
 export class InterpBuffer {
@@ -15,7 +15,7 @@ export class InterpBuffer {
     this.samples.push(s);
     if (this.samples.length > MAX_SAMPLES) this.samples.shift();
   }
-  /** Интерполированное состояние на момент renderTime (мс). */
+  /** Interpolated state at renderTime (ms). */
   sample(renderTime: number): Sample | null {
     const a = this.samples;
     if (!a.length) return null;
@@ -27,7 +27,7 @@ export class InterpBuffer {
         return { t: renderTime, x: s0.x + (s1.x - s0.x) * k, z: s0.z + (s1.z - s0.z) * k, r: lerpAngle(s0.r, s1.r, k) };
       }
     }
-    return a[a.length - 1]; // данных новее нет — стоим в последней точке (без экстраполяции рывками)
+    return a[a.length - 1]; // no newer data — stay at the last point (no jerky extrapolation)
   }
 }
 
