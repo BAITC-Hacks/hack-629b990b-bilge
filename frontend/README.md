@@ -2,6 +2,32 @@
 
 React 19 + TypeScript + Vite 8 + three 0.186 + React Three Fiber 9 + drei 10. Единственный источник данных — BFF из [`../backend`](../backend/README.md) через его типизированный клиент `backend/client/index.ts`.
 
+## Screenshots
+
+Реальные кадры 3D-кампуса (Chromium, 1600×1000). Герой — облёт площади.
+
+### 3D Campus
+
+![AI Sana 3D campus](docs/screenshots/3d-world-overview.png)
+
+### Multiplayer
+
+![Two players in the shared world](docs/screenshots/multiplayer.png)
+
+### Grand Triumph event
+
+![Grand Triumph](docs/screenshots/grand-triumph.png)
+
+### Task interaction
+
+![Task pavilion interaction](docs/screenshots/task-building.png)
+
+### World map
+
+![3D world map](docs/screenshots/world-map.png)
+
+Дополнительно: [игрок на улице](docs/screenshots/player-world.png), [отладка `?debug3d=1`](docs/screenshots/debug-3d.png).
+
 ## Запуск
 ```bash
 cd backend && npm ci && cp .env.example .env   # один раз; ключ OpenAI — только в backend/.env
@@ -25,4 +51,4 @@ Triumph Plaza в центре, до 8 главных павильонов (лу�
 
 Модели — CC0: Kenney City Kit (Commercial), Car Kit, Mini (characters/forest/market/arcade/skate/trophy), KayKit City Builder Bits; лицензии — `public/models/LICENSES.txt`.
 
-Проверено: `tsc`, `npm test` (6/6), `vite build`. Вид сцены и FPS проверяются в браузере вручную.
+Проверено 2026-09-23 в браузере: сцена рисуется, WASD и карта `M` работают, два клиента видят друг друга, карточка задачи открывается, GRAND TRIUMPH пойман после подтверждения этапа бизнесом. В `?debug3d=1` в той сессии был FPS 60. Не утверждается стабильный 60 FPS на любом железе; визуально отчётливая синхронизация эмоций 1–4 не зафиксирована.

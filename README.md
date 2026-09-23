@@ -1,5 +1,12 @@
-# hack-629b990b-bilge
-Hackathon team repository for Bilge
+# AI Sana — 3D Multiplayer Task Campus
+
+Interactive multiplayer 3D campus for discovering AI Sana business challenges.
+
+![3D Campus](frontend/docs/screenshots/3d-world-overview.png)
+
+Students walk a shared WebGL world, see teammates online, open task pavilions, and celebrate a server-driven **GRAND TRIUMPH** when a business confirms a stage result.
+
+See the frontend and 3D docs: [frontend/README.md](frontend/README.md)
 
 ## Backend (AI Sana)
 
