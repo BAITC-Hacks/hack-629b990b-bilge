@@ -4,7 +4,7 @@
 .world-fail { max-width: 520px; margin: 18vh auto; background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 10px 40px rgba(22,50,79,.2); }
 kbd { display: inline-block; font: inherit; font-size: 11.5px; font-weight: 700; background: #16324f; color: #fff; border-radius: 5px; padding: 0 6px; margin-right: 4px; }
 
-/* HUD: всегда выше HTML-подписей сцены (у них z-index до 45) */
+/* HUD: always above the scene's HTML labels (they use z-index up to 45) */
 .hud-tl, .hud-tr, .hud-bl, .hud-br, .hud-online, .hud-near, .intro-skip, .mate-compass, .triumph-banner, .debug3d { position: absolute; z-index: 60; }
 .hud-tl { left: 14px; top: 14px; background: rgba(255,255,255,.94); border-radius: 14px; padding: 8px 14px; box-shadow: 0 6px 22px rgba(22,50,79,.14); }
 .hud-brand { font-size: 16px; color: #16324f; letter-spacing: .01em; }
@@ -44,7 +44,7 @@ kbd { display: inline-block; font: inherit; font-size: 11.5px; font-weight: 700;
 .mate-compass i { font-style: normal; display: inline-block; color: #0f766e; font-size: 15px; }
 .debug3d { left: 14px; top: 96px; margin: 0; background: rgba(15,27,45,.86); color: #c7f9ef; font-size: 11.5px; line-height: 1.45; padding: 8px 10px; border-radius: 10px; max-height: none; pointer-events: none; }
 
-/* список задач и карточка */
+/* task list and card */
 .hud-list { position: absolute; z-index: 70; left: 14px; top: 96px; bottom: 60px; width: min(390px, 92vw); overflow: auto; background: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 40px rgba(22,50,79,.25); }
 .hud-list ol { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
 .list-item { width: 100%; text-align: left; font: inherit; border: 1px solid var(--line); border-left: 4px solid var(--lv-draft); background: #fff; border-radius: 10px; padding: 8px 10px; cursor: pointer; display: flex; flex-direction: column; }
@@ -55,7 +55,7 @@ kbd { display: inline-block; font: inherit; font-size: 11.5px; font-weight: 700;
 .drawer-cta { display: flex; gap: 10px; align-items: center; justify-content: space-between; background: #effaf8; color: #0f5f59; font-size: 14px; font-weight: 600; padding: 10px 16px; border-bottom: 1px solid #d5efe9; }
 @keyframes drawerIn { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 
-/* подписи в сцене */
+/* scene labels */
 .tb-label { background: rgba(255,255,255,.95); border-radius: 12px; padding: 5px 10px; text-align: center; box-shadow: 0 4px 14px rgba(22,50,79,.16); border: 2px solid transparent; border-top: 4px solid var(--lv-draft); font-size: 12px; line-height: 1.25; white-space: nowrap; max-width: 240px; }
 .tb-label.full { white-space: normal; min-width: 210px; max-width: 270px; padding: 7px 12px; }
 .tb-label.lvl-work { border-top-color: var(--lv-work); } .tb-label.lvl-ready { border-top-color: var(--lv-ready); } .tb-label.lvl-priority { border-top-color: var(--lv-priority); }
@@ -106,7 +106,7 @@ kbd { display: inline-block; font: inherit; font-size: 11.5px; font-weight: 700;
 .hall-row i { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 4px; }
 .hall-empty { color: #9fb3c8; }
 
-/* карта */
+/* map */
 .map-pin { font: inherit; border: 2px solid #fff; border-radius: 12px; background: #fff; box-shadow: 0 3px 10px rgba(22,50,79,.25); cursor: pointer; white-space: nowrap; font-size: 12px; padding: 2px 8px; display: inline-flex; gap: 4px; align-items: center; }
 .map-pin.plaza { background: #16324f; color: #fcd34d; font-weight: 800; cursor: default; }
 .map-pin.task { border-radius: 10px 10px 10px 2px; border-color: var(--lv-draft); font-weight: 800; }
