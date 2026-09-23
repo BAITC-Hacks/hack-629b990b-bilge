@@ -20,8 +20,8 @@ export class Auth {
     const row = this.store.db.prepare('SELECT id FROM users WHERE code_hash=?').get(hashSecret(code)) as
       { id: string } | undefined;
     if (!row)
-      throw new AppError(401, 'INVALID_CODE', 'Код входа не найден. Проверьте код у организатора демо.', {
-        code: ['Неверный код входа'],
+      throw new AppError(401, 'INVALID_CODE', 'Sign-in code not found. Check the code with the demo organizer.', {
+        code: ['Invalid sign-in code'],
       });
     return this.issue(row.id);
   }
@@ -39,7 +39,7 @@ export class Auth {
     const row = this.store.db
       .prepare('SELECT user_id FROM sessions WHERE token_hash=? AND expires_at>?')
       .get(hashSecret(token), Date.now()) as { user_id: string } | undefined;
-    if (!row) throw new AppError(401, 'SESSION_EXPIRED', 'Сессия завершена. Войдите снова.', {}, 'sign_in');
+    if (!row) throw new AppError(401, 'SESSION_EXPIRED', 'Session ended. Please sign in again.', {}, 'sign_in');
     return this.store.actor(row.user_id) ?? null;
   }
   logout(token: string) {
