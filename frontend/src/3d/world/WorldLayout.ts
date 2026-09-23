@@ -1,26 +1,26 @@
-// Детерминированная планировка кампуса «AI Sana». Чистые вычисления без three.js — покрыты автотестами.
+// Deterministic layout of the "AI Sana" campus. Pure computation without three.js — covered by automated tests.
 //
-// Слои от центра (как на референсе Creator Academy Plaza / low-poly campus):
-//   монумент TRIUMPH → кольцо главных павильонов задач → пешеходная площадь с зелёными островками
-//   → тротуар → кольцевая дорога (не пересекает площадь) → тротуар → кварталы районов с участками задач
-//   → резервный ряд участков → живая изгородь → высокие здания и горы только на заднем плане.
-// Каждая задача получает место по seed = hash(task.id): одинаково после перезагрузки и у всех игроков.
+// Layers from the center (as in the Creator Academy Plaza / low-poly campus reference):
+//   TRIUMPH monument → ring of main task pavilions → pedestrian plaza with green islands
+//   → sidewalk → ring road (doesn't cross the plaza) → sidewalk → district blocks with task plots
+//   → reserve row of plots → hedge → tall buildings and mountains only in the background.
+// Each task gets its spot by seed = hash(task.id): the same after reload and for every player.
 import { WORLD_HALF, hash32, rng } from '../../shared/world';
 
 export type District = 'central' | 'business' | 'innovation' | 'green' | 'teams';
 export const DISTRICT_LABEL: Record<District, string> = {
-  central: 'Triumph Plaza', business: 'Бизнес-квартал', innovation: 'Инновационный квартал', green: 'Зелёный квартал', teams: 'Квартал команд',
+  central: 'Triumph Plaza', business: 'Business district', innovation: 'Innovation district', green: 'Green district', teams: 'Teams district',
 };
 
-export const PLAZA = 30;          // половина стороны пешеходной площади
-export const ROAD_IN = 33;        // внутренний край дороги
-export const ROAD_OUT = 41;       // внешний край дороги
-export const SIDEWALK_OUT = 44;   // конец внешнего тротуара
-export const BAND_OUT = 74;       // внешний край основных кварталов
-export const FEATURED_R = 17.5;   // радиус кольца главных павильонов
+export const PLAZA = 30;          // half the side of the pedestrian plaza
+export const ROAD_IN = 33;        // inner road edge
+export const ROAD_OUT = 41;       // outer road edge
+export const SIDEWALK_OUT = 44;   // end of the outer sidewalk
+export const BAND_OUT = 74;       // outer edge of the main blocks
+export const FEATURED_R = 17.5;   // radius of the main pavilion ring
 export const FEATURED_SLOTS = 8;
-export const PLOT_W = 11;         // участок вдоль улицы
-export const PLOT_D = 10;         // участок в глубину
+export const PLOT_W = 11;         // plot width along the street
+export const PLOT_D = 10;         // plot depth
 export const BUILDING_W = 9;
 export const BUILDING_D = 8;
 export const PAVILION_R = 4.2;
@@ -35,7 +35,7 @@ export type Side = 'N' | 'E' | 'S' | 'W';
 const SIDE_DISTRICT: Record<Side, District> = { N: 'business', E: 'innovation', S: 'teams', W: 'green' };
 const SIDE_ROT: Record<Side, number> = { N: 0, S: Math.PI, E: -Math.PI / 2, W: Math.PI / 2 };
 
-/** Локальные координаты квартала (t — вдоль улицы, d — от центра) → мир. */
+/** Block-local coordinates (t — along the street, d — from the center) → world. */
 export function sideToWorld(side: Side, t: number, d: number): [number, number] {
   switch (side) {
     case 'N': return [t, -d];
@@ -76,20 +76,21 @@ export interface WorldLayout {
   routes: Route[];
   benches: Placement[];
   reserveUsed: boolean;
-  /** Граница прогулки (живая изгородь). */
+  /** Walking boundary (hedge). */
   walkLimit: number;
-  /** Линия изгороди; за ней лесополоса и задний план. */
+  /** Hedge line; beyond it — a tree belt and the backdrop. */
   edge: number;
 }
 
-/** Отрасль в BFF — свободный текст бизнеса («Общепит», «Торговля», «IT»…): оформление выбирается по ключевым словам. */
+/** Industry in the BFF is free text from the business ("Food service", "Retail", "IT"…): the style is chosen by keywords.
+ *  English and Russian keywords are both matched, since businesses may type either language. */
 const PRESET_RULES: [RegExp, BuildingPreset][] = [
-  [/общепит|кафе|ресторан|horeca|еда|кухн/i, 'cafe'],
-  [/торгов|ритейл|магазин|retail|книг/i, 'shop'],
-  [/логист|доставк|склад|транспорт/i, 'warehouse'],
-  [/финан|финтех|банк|fintech|\bit\b|айти|технолог|софт/i, 'lab'],
-  [/образов|школ|колледж|универ|обучен|курс/i, 'academy'],
-  [/здрав|медиц|клиник|больниц|аптек/i, 'clinic'],
+  [/food|cafe|restaurant|catering|horeca|общепит|кафе|ресторан|еда|кухн/i, 'cafe'],
+  [/retail|shop|store|commerce|books|торгов|ритейл|магазин|книг/i, 'shop'],
+  [/logistic|delivery|warehouse|transport|логист|доставк|склад|транспорт/i, 'warehouse'],
+  [/finance|fintech|bank|\bit\b|tech|software|финан|финтех|банк|айти|технолог|софт/i, 'lab'],
+  [/educat|school|college|universit|course|learning|образов|школ|колледж|универ|обучен|курс/i, 'academy'],
+  [/health|medic|clinic|hospital|pharma|здрав|медиц|клиник|больниц|аптек/i, 'clinic'],
 ];
 export function presetFor(industry: string): BuildingPreset {
   return PRESET_RULES.find(([re]) => re.test(industry))?.[1] ?? 'pavilion';
@@ -101,17 +102,17 @@ const PRESET_DISTRICTS: Record<BuildingPreset, District[]> = {
   pavilion: ['business', 'innovation', 'green'],
 };
 
-// ---------- фиксированная сетка участков ----------
+// ---------- fixed plot grid ----------
 function buildPlots(): Plot[] {
   const plots: Plot[] = [];
-  // главные павильоны: кольцо вокруг монумента, южный сектор свободен (главный вход и вид со стартовой камеры)
+  // main pavilions: a ring around the monument; the southern sector stays open (main entrance and the starting camera view)
   const order = [3, 4, 2, 5, 1, 6, 0, 7];
   for (let k = 0; k < FEATURED_SLOTS; k++) {
     const a = ((25 + k * (310 / 7)) * Math.PI) / 180;
     const x = FEATURED_R * Math.sin(a), z = FEATURED_R * Math.cos(a);
     plots.push({ id: `featured-${k}`, x, z, rot: Math.atan2(-x, -z), w: PAVILION_R * 2, d: PAVILION_R * 2, district: 'central', kind: 'featured', rank: order.indexOf(k) });
   }
-  // кварталы N/E/W: передний ряд (к дороге), задний ряд (к аллее), резервный ряд (растёт по числу задач)
+  // N/E/W blocks: front row (toward the road), back row (toward the lane), reserve row (grows with the number of tasks)
   let rank = 0;
   for (const side of ['N', 'E', 'W'] as Side[]) {
     const district = SIDE_DISTRICT[side];
@@ -122,7 +123,7 @@ function buildPlots(): Plot[] {
       }
     }
   }
-  // угловые кварталы: по два участка лицом к ближайшей дороге (юго-западный угол занят скейт-площадкой)
+  // corner blocks: two plots each facing the nearest road (the south-west corner is taken by the skate park)
   const corners: [number, number, District][] = [[1, -1, 'business'], [-1, -1, 'green'], [1, 1, 'innovation']];
   for (const [sx, sz, district] of corners) {
     plots.push({ id: `C${sx}${sz}-a`, x: sx * 52, z: sz * 66, rot: sz > 0 ? Math.PI : 0, w: PLOT_W, d: PLOT_D, district, kind: 'plot', rank: rank++ });
@@ -132,23 +133,23 @@ function buildPlots(): Plot[] {
 }
 export const PLOTS: Plot[] = buildPlots();
 
-/** Слоты баз команд (квартал команд на юге), ближние к площади — первыми. */
+/** Team base slots (teams district in the south), closest to the plaza first. */
 export const TEAM_SLOTS: { x: number; z: number; rot: number }[] = ([[50, -21], [50, 21], [50, -35], [50, 35], [65, -21], [65, 21], [65, -35], [65, 35]] as const).map(([d, t]) => {
   const [x, z] = sideToWorld('S', t, d);
   return { x, z, rot: Math.PI };
 });
 export const TEAM_BASE_R = 5;
 
-// ---------- размещение задач ----------
+// ---------- task placement ----------
 export function placeTasks(tasks: TaskLike[]): TaskPlacement[] {
-  // главные: лучшие по готовности (порядок каталога), ранг → самый заметный слот
+  // featured: the most ready (catalog order), rank → the most visible slot
   const ranked = [...tasks].sort((a, b) => b.score.total - a.score.total || b.publishedAt.localeCompare(a.publishedAt) || a.id.localeCompare(b.id));
   const featured = ranked.slice(0, Math.min(FEATURED_SLOTS, ranked.length));
   const featuredSet = new Set(featured.map((t) => t.id));
   const featuredPlots = PLOTS.filter((p) => p.kind === 'featured').sort((a, b) => a.rank - b.rank);
   const out: TaskPlacement[] = featured.map((t, i) => mk(t, featuredPlots[i], true));
 
-  // остальные — в порядке публикации: новая задача не сдвигает старые
+  // the rest — in publication order: a new task doesn't shift older ones
   const rest = tasks.filter((t) => !featuredSet.has(t.id)).sort((a, b) => a.publishedAt.localeCompare(b.publishedAt) || a.id.localeCompare(b.id));
   const used = new Set<string>();
   const pool = PLOTS.filter((p) => p.kind !== 'featured');
@@ -171,7 +172,7 @@ export function placeTasks(tasks: TaskLike[]): TaskPlacement[] {
   }
   return out;
 }
-/** Если задач больше, чем участков: дополнительное кольцо за резервным рядом (мир продолжает расти). */
+/** If there are more tasks than plots: an extra ring beyond the reserve row (the world keeps growing). */
 function overflowPlot(i: number): Plot {
   const sides: Side[] = ['N', 'E', 'W', 'S'];
   const side = sides[i % 4];
@@ -184,7 +185,7 @@ function overflowPlot(i: number): Plot {
 function mk(t: TaskLike, plot: Plot, featured: boolean): TaskPlacement {
   const seed = hash32(t.id);
   const r = rng(seed);
-  const jitter = featured ? 0 : (r() - 0.5) * 0.12; // лёгкий поворот, чтобы кварталы не выглядели штампом
+  const jitter = featured ? 0 : (r() - 0.5) * 0.12; // a slight rotation so blocks don't look stamped out
   return { taskId: t.id, plot, x: plot.x, z: plot.z, rot: plot.rot + jitter, featured, seed, preset: featured ? 'pavilion' : presetFor(t.industry), district: plot.district };
 }
 
@@ -195,7 +196,7 @@ export function districtAt(x: number, z: number): District {
   return x > 0 ? 'innovation' : 'green';
 }
 
-// ---------- геометрия проверки ----------
+// ---------- hit-test geometry ----------
 export function insideRect(px: number, pz: number, c: { x: number; z: number; hw: number; hd: number; rot: number }, pad = 0): boolean {
   const dx = px - c.x, dz = pz - c.z;
   const cos = Math.cos(-c.rot), sin = Math.sin(-c.rot);
@@ -203,7 +204,7 @@ export function insideRect(px: number, pz: number, c: { x: number; z: number; hw
   return Math.abs(lx) <= c.hw + pad && Math.abs(lz) <= c.hd + pad;
 }
 
-/** Выталкивание точки (игрока радиуса r) из препятствий. Возвращает исправленную позицию. */
+/** Pushes a point (a player of radius r) out of obstacles. Returns the corrected position. */
 export function resolveCollisions(x: number, z: number, colliders: Collider[], r = 0.45, half = WORLD_HALF): [number, number] {
   for (let pass = 0; pass < 2; pass++) {
     for (const c of colliders) {
@@ -217,7 +218,7 @@ export function resolveCollisions(x: number, z: number, colliders: Collider[], r
       } else {
         const dx = x - c.x, dz = z - c.z;
         const cos = Math.cos(c.rot), sin = Math.sin(c.rot);
-        // мир → локальные оси прямоугольника (rotation-y)
+        // world → rectangle local axes (rotation-y)
         const lx = dx * cos - dz * sin, lz = dx * sin + dz * cos;
         const hx = c.hw + r, hz = c.hd + r;
         if (Math.abs(lx) < hx && Math.abs(lz) < hz) {
@@ -233,7 +234,7 @@ export function resolveCollisions(x: number, z: number, colliders: Collider[], r
   return [Math.max(-half, Math.min(half, x)), Math.max(-half, Math.min(half, z))];
 }
 
-// ---------- полная планировка ----------
+// ---------- full layout ----------
 export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
   const placements = placeTasks(tasks);
   const byTask: Record<string, TaskPlacement> = Object.fromEntries(placements.map((p) => [p.taskId, p]));
@@ -256,18 +257,18 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
   const farBuildings: DecorBuilding[] = [];
   const R = rng(20260923);
 
-  // здания задач и павильоны
+  // task buildings and pavilions
   for (const p of placements) {
     if (p.featured) colliders.push({ kind: 'circle', x: p.x, z: p.z, r: PAVILION_R, tag: `task:${p.taskId}` });
     else colliders.push({ kind: 'rect', x: p.x, z: p.z, hw: BUILDING_W / 2, hd: BUILDING_D / 2, rot: p.rot, tag: `task:${p.taskId}` });
   }
-  // монумент и фонтаны
+  // monument and fountains
   for (const [x, z] of MONUMENT_PYLONS) colliders.push({ kind: 'rect', x, z, hw: 1.5, hd: 1.4, rot: 0, tag: 'monument' });
   colliders.push({ kind: 'circle', x: 0, z: 0, r: 2.2, tag: 'monument-core' });
   for (const [x, z] of FOUNTAINS) colliders.push({ kind: 'circle', x, z, r: FOUNTAIN_R, tag: 'fountain' });
   colliders.push({ kind: 'rect', x: HALL_POS.x, z: HALL_POS.z, hw: 3.2, hd: 0.6, rot: HALL_POS.rot, tag: 'hall' });
 
-  // ---- площадь: зелёные островки между павильонами, лавочки лицом к монументу ----
+  // ---- plaza: green islands between pavilions, benches facing the monument ----
   const featuredAngles = Array.from({ length: FEATURED_SLOTS }, (_, k) => 25 + k * (310 / 7));
   for (let k = 0; k < FEATURED_SLOTS - 1; k++) {
     const a = ((featuredAngles[k] + featuredAngles[k + 1]) / 2 * Math.PI) / 180;
@@ -278,18 +279,18 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
     const bx = x - Math.sin(rot) * 2.3, bz = z - Math.cos(rot) * 2.3;
     benches.push({ x: bx, z: bz, r: rot });
   }
-  // угловые островки площади
+  // plaza corner islands
   for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
     const x = sx * 24.5, z = sz * 24.5;
     planters.push({ x, z, w: 6, d: 6, rot: Math.PI / 4, tree: true });
     colliders.push({ kind: 'circle', x, z, r: 3.6, tag: 'planter' });
     flowerBeds.push({ x: x - sx * 4.6, z: z - sz * 1.2, r: 1.1, color: '#f28ab2' }, { x: x - sx * 1.2, z: z - sz * 4.6, r: 1.1, color: '#ffd166' });
   }
-  // клумбы вдоль южного входа
+  // flower beds along the south entrance
   for (const sx of [-1, 1]) for (const z of [22.5, 28]) flowerBeds.push({ x: sx * 4.6, z, r: 1.1, color: z > 25 ? '#9b8cf2' : '#ff9f68' });
   for (const [x, z] of FOUNTAINS) for (const k of [0, 1, 2]) { const a = k * 2.1 + 0.6; bins.push({ x: x + Math.cos(a) * 5.2, z: z + Math.sin(a) * 5.2, r: 0 }); }
 
-  // ---- фонари и светофоры ----
+  // ---- streetlights and traffic lights ----
   for (const side of ['N', 'E', 'S', 'W'] as Side[]) {
     for (let t = -26; t <= 26; t += 10.4) {
       if (Math.abs(t) < 6) continue;
@@ -313,7 +314,7 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
     put('hydrant', { x: hx, z: hz, r: 0 });
   }
 
-  // ---- кварталы: дорожки, аллея, особые места ----
+  // ---- blocks: paths, lane, landmarks ----
   for (const side of ['N', 'E', 'S', 'W'] as Side[]) {
     const rot = SIDE_ROT[side];
     const [ax, az] = sideToWorld(side, 0, (SIDEWALK_OUT + (reserveUsed ? 77 : 70)) / 2);
@@ -322,11 +323,11 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
     const [lx, lz] = sideToWorld(side, 0, LANE_D);
     paths.push({ x: lx, z: lz, w: 94, d: 4, rot, kind: 'lane' });
     if (reserveUsed && side !== 'S') { const [l2x, l2z] = sideToWorld(side, 0, LANE2_D); paths.push({ x: l2x, z: l2z, w: 94, d: 4, rot, kind: 'lane' }); }
-    // площадка у входа в квартал (между передними участками)
+    // square at the block entrance (between the front plots)
     const [sqx, sqz] = sideToWorld(side, 0, 50);
     paths.push({ x: sqx, z: sqz, w: 20, d: 9, rot, kind: 'square' });
   }
-  // дорожки ко входам зданий задач
+  // paths to task building entrances
   for (const p of placements) {
     if (p.featured) continue;
     const fx = Math.sin(p.rot), fz = Math.cos(p.rot);
@@ -334,10 +335,10 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
     paths.push({ x: p.x + fx * (BUILDING_D / 2 + len / 2), z: p.z + fz * (BUILDING_D / 2 + len / 2), w: 3.2, d: len, rot: p.rot, kind: 'plot' });
   }
 
-  // квартал бизнеса: зонтики, киоски; инновации: техно-стенды; зелёный: пруд; команды: скейт-площадка
+  // business district: parasols, kiosks; innovation: tech stands; green: pond; teams: skate park
   landmarkProps(put, colliders, benches, R);
 
-  // средние здания — рамка углов (не больше трёх вблизи)
+  // mid-rise buildings frame the corners (no more than three nearby)
   const mids: [number, number, string][] = [[64, -64, 'bld-l'], [-64, -64, 'bld-n'], [64, 64, 'bld-j']];
   for (const [x, z, id] of mids) {
     const rot = Math.atan2(-x, -z);
@@ -345,9 +346,9 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
     colliders.push({ kind: 'rect', x, z, hw: 7.5, hd: 7, rot, tag: 'building' });
   }
 
-  // ---- равномерное заполнение пустот мелкими объектами ----
-  // Каждая клетка сетки имеет свой seed: когда на участке появляется здание, исчезают только объекты этого участка,
-  // остальная декорация не «переезжает».
+  // ---- even filling of empty space with small objects ----
+  // Each grid cell has its own seed: when a building appears on a plot, only that plot's objects disappear;
+  // the rest of the decoration doesn't "move".
   const baseColliders = [...colliders];
   const blocked = (x: number, z: number, pad: number) => {
     for (const c of baseColliders) {
@@ -355,7 +356,7 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
     }
     for (const pa of paths) if (insideRect(x, z, { x: pa.x, z: pa.z, hw: pa.w / 2, hd: pa.d / 2, rot: pa.rot }, pad * 0.6)) return true;
     for (const s of teamSlots) if (Math.hypot(x - s.x, z - s.z) < TEAM_BASE_R + 2.2) return true;
-    if (x < -48 && z > 48 && x > -72 && z < 72) return true; // скейт-площадка
+    if (x < -48 && z > 48 && x > -72 && z < 72) return true; // skate park
     return false;
   };
   const outer = reserveUsed ? 86 : BAND_OUT + 1;
@@ -382,7 +383,7 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
       else bins.push({ x, z, r: 0 });
     }
   }
-  // живая изгородь и лесополоса по краю — естественная граница мира
+  // hedge and tree belt along the edge — a natural world boundary
   const edge = outer + 2;
   for (let t = -edge; t <= edge; t += 2.4) {
     for (const [x, z] of [[t, -edge], [t, edge], [-edge, t], [edge, t]] as [number, number][]) {
@@ -394,7 +395,7 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
       put(R() < 0.5 ? 'tree-high' : 'tree', { x: x + (R() - 0.5) * 2, z: z + (R() - 0.5) * 2, r: R() * 6, s: 1.6 + R() * 0.6 });
     }
   }
-  // задний план: высокие здания только вдали
+  // background: tall buildings only in the distance
   const skyline = ['tower-a', 'tower-b', 'tower-c', 'tower-d', 'tower-e', 'far-a', 'far-b', 'far-c', 'far-d', 'far-e', 'far-f', 'far-g', 'far-h', 'far-i', 'far-j', 'far-wide-a', 'far-wide-b'];
   const ring = edge + 16;
   for (let t = -ring; t <= ring; t += 11) {
@@ -406,7 +407,7 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
       farBuildings.push({ asset: id, x: px, z: pz, rot: SIDE_ROT[side] + (R() < 0.5 ? 0 : Math.PI / 2), s: 1 + R() * 0.5, w: 0, d: 0 });
     }
   }
-  // маршруты декоративных прохожих (NPC)
+  // routes for decorative passers-by (NPCs)
   const routes: Route[] = [
     { id: 'plaza-ring', points: Array.from({ length: 24 }, (_, i) => { const a = (i / 24) * Math.PI * 2; return [Math.sin(a) * 23.2, Math.cos(a) * 23.2] as [number, number]; }), loop: true },
     { id: 'sidewalk', points: [[-43, -43], [43, -43], [43, 43], [-43, 43]], loop: true },
@@ -421,21 +422,21 @@ export function buildLayout(tasks: TaskLike[], teamIds: string[]): WorldLayout {
 
 function isFrontRow(p: Plot) { return p.id.includes('-50-') || p.id.endsWith('-a') || p.id.endsWith('-b'); }
 
-/** Особые места кварталов (детерминированно). */
+/** District landmarks (deterministic). */
 function landmarkProps(put: (id: string, p: Placement) => void, colliders: Collider[], benches: Placement[], R: () => number) {
-  // бизнес (север): уличное кафе у входа в квартал
+  // business (north): a street cafe at the block entrance
   for (const [t, d] of [[-7, 47.5], [7, 47.5], [-7, 52.5], [7, 52.5]]) {
     const [x, z] = sideToWorld('N', t, d);
     put(R() < 0.5 ? 'parasol-a' : 'parasol-b', { x, z, r: R() * 6 });
   }
   for (const [t, d] of [[-12.5, 48], [12.5, 48]]) { const [x, z] = sideToWorld('N', t, d); put('display-fruit', { x, z, r: 0 }); colliders.push({ kind: 'circle', x, z, r: 0.7, tag: 'prop' }); }
-  // инновации (восток): стенды и автоматы
+  // innovation (east): stands and machines
   for (const [t, d, id] of [[-8, 47, 'vending'], [-6.6, 47, 'vending'], [8, 47, 'arcade'], [9.4, 47, 'claw'], [-8.5, 52.5, 'dance'], [8.5, 52.5, 'ticket']] as [number, number, string][]) {
     const [x, z] = sideToWorld('E', t, d);
     put(id, { x, z, r: -Math.PI / 2 });
     colliders.push({ kind: 'circle', x, z, r: 0.6, tag: 'prop' });
   }
-  // зелёный (запад): лавочки у пруда (пруд рисуется отдельно в точке sideToWorld('W', 0, 64))
+  // green (west): benches by the pond (the pond is drawn separately at sideToWorld('W', 0, 64))
   const [px, pz] = sideToWorld('W', 0, 64);
   colliders.push({ kind: 'circle', x: px, z: pz, r: 5.2, tag: 'pond' });
   for (let k = 0; k < 5; k++) {
@@ -443,7 +444,7 @@ function landmarkProps(put: (id: string, p: Placement) => void, colliders: Colli
     const x = px + Math.cos(a) * 7.2, z = pz + Math.sin(a) * 7.2;
     benches.push({ x, z, r: Math.atan2(px - x, pz - z) });
   }
-  // квартал команд (юго-запад): скейт-площадка
+  // teams district (south-west): skate park
   const sk: [string, number, number, number][] = [['half-pipe', -56, 58, Math.PI / 2], ['skate-box', -62, 64, 0], ['skate-rail', -54, 66, 0], ['skate-steps', -66, 56, Math.PI], ['skate-platform', -62, 52, 0]];
   for (const [id, x, z, r] of sk) put(id, { x, z, r });
   put('skateboard', { x: -58.5, z: 62, r: 0.4 });
