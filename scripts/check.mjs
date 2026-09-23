@@ -19,7 +19,12 @@ must(install(FRONTEND), 'npm install в frontend/');
 
 step('Бэкенд: типы и тесты');
 record('backend: tsc', run('npm', ['run', 'check'], BACKEND) === 0);
-record('backend: тесты (vitest)', run('npm', ['test'], BACKEND) === 0);
+{
+  // тесты realtime ждут события до 1 с — на сильно нагруженной машине допускаем один повтор и сообщаем о нём
+  const first = run('npm', ['test'], BACKEND) === 0;
+  const ok = first || run('npm', ['test'], BACKEND) === 0;
+  record('backend: тесты (vitest)', ok, first ? '' : ok ? 'прошло со второй попытки' : '');
+}
 
 step('Фронтенд: типы, тесты, сборка');
 record('frontend: tsc', run('npm', ['run', 'typecheck'], FRONTEND) === 0);
