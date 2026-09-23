@@ -12,13 +12,13 @@ import { TaskPage } from './pages/TaskPage';
 import { Scoreboard } from './pages/Scoreboard';
 import { hasWebGL } from './world/webgl';
 
-// 3D-мир грузится отдельным чанком: 2D-страницы не ждут Three.js.
+// The 3D world loads as a separate chunk: 2D pages don't wait for Three.js.
 const World = lazy(() => import('./pages/World'));
 
-/** Экран ждёт первого снимка BFF; для личных экранов нужна сессия нужной роли (права всё равно проверяет сервер). */
+/** The screen waits for the first BFF snapshot; personal screens need a session with the right role (the server still checks permissions). */
 function Guard({ role, children }: { role?: 'business' | 'member'; children: ReactNode }) {
   const { snap } = useApp();
-  if (!snap) return <div className="page-loading">Загрузка…</div>;
+  if (!snap) return <div className="page-loading">Loading…</div>;
   const actor = snap.bootstrap.actor;
   if (role && (!getToken() || !actor)) return <Navigate to="/login" replace />;
   if (role === 'business' && actor?.role !== 'business') return <Navigate to="/dashboard" replace />;
@@ -27,7 +27,7 @@ function Guard({ role, children }: { role?: 'business' | 'member'; children: Rea
 
 function Home() {
   const { snap } = useApp();
-  if (!snap) return <div className="page-loading">Загрузка…</div>;
+  if (!snap) return <div className="page-loading">Loading…</div>;
   const actor = snap.bootstrap.actor;
   if (!actor && !getToken()) return <Navigate to="/login" replace />;
   if (actor?.role === 'business') return <Navigate to="/dashboard" replace />;
@@ -49,7 +49,7 @@ export function App() {
         element={
           <Guard>
             {hasWebGL() ? (
-              <Suspense fallback={<div className="page-loading world-loading">Строим кампус AI Sana…</div>}>
+              <Suspense fallback={<div className="page-loading world-loading">Building the AI Sana campus…</div>}>
                 <World />
               </Suspense>
             ) : (
