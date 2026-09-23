@@ -1,5 +1,5 @@
-// Загрузка ассетов из реестра: одиночная модель и массовая отрисовка (InstancedMesh, один вызов на материал).
-// Любая ошибка загрузки — простая геометрия вместо модели; мир не ломается.
+// Loading assets from the registry: a single model and bulk rendering (InstancedMesh, one draw call per material).
+// Any load error falls back to simple geometry instead of the model; the world doesn't break.
 import { Component, Suspense, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -9,14 +9,14 @@ import { asset } from './assetRegistry';
 export class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(e: unknown) { console.warn('3D-модель не загрузилась, используется простая геометрия', e); }
+  componentDidCatch(e: unknown) { console.warn('3D model failed to load, using simple geometry', e); }
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 export function Safe({ fallback = null, children }: { fallback?: ReactNode; children: ReactNode }) {
   return <ModelBoundary fallback={fallback}><Suspense fallback={fallback}>{children}</Suspense></ModelBoundary>;
 }
 
-/** Геометрия модели, «запечённая» в одну систему координат: основание на y=0, центр по x/z в нуле, масштаб набора. */
+/** Model geometry "baked" into one coordinate system: base at y=0, x/z centered at zero, kit scale applied. */
 interface Baked { parts: { geometry: THREE.BufferGeometry; material: THREE.Material }[]; size: THREE.Vector3 }
 const bakedCache = new Map<string, Baked>();
 
@@ -35,7 +35,7 @@ function bake(id: string, scene: THREE.Object3D): Baked {
     const mats = Array.isArray(m.material) ? m.material : [m.material];
     const g = (m.geometry as THREE.BufferGeometry).clone();
     g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(fix, m.matrixWorld));
-    // оставляем только общие атрибуты, чтобы геометрии сливались
+    // keep only common attributes so geometries can be merged
     for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array((g.attributes.position.count) * 2), 2));
     if (!g.attributes.normal) g.computeVertexNormals();
@@ -64,7 +64,7 @@ export function useBaked(id: string): Baked {
   return useMemo(() => bake(id, gltf.scene), [id, gltf.scene]);
 }
 
-/** Одна статичная модель. */
+/** A single static model. */
 export function AssetModel({ id, position, rotationY = 0, scale = 1, castShadow }: { id: string; position?: [number, number, number]; rotationY?: number; scale?: number; castShadow?: boolean }) {
   const b = useBaked(id);
   const shadow = castShadow ?? asset(id).shadow;
@@ -77,7 +77,7 @@ export function AssetModel({ id, position, rotationY = 0, scale = 1, castShadow 
 
 export interface Placement { x: number; z: number; r: number; s?: number; y?: number }
 
-/** Много копий одной модели — по одному InstancedMesh на материал. */
+/** Many copies of one model — one InstancedMesh per material. */
 export function InstancedAsset({ id, items, castShadow }: { id: string; items: Placement[]; castShadow?: boolean }) {
   const b = useBaked(id);
   const shadow = castShadow ?? asset(id).shadow;
@@ -104,7 +104,7 @@ function InstancedPart({ geometry, material, items, shadow }: { geometry: THREE.
   return <instancedMesh ref={ref} args={[geometry, material, items.length]} castShadow={shadow} receiveShadow frustumCulled />;
 }
 
-/** Группа инстансов по реестру: { assetId: placements[] }. Каждая модель грузится независимо, ошибка одной не мешает остальным. */
+/** Instance groups from the registry: { assetId: placements[] }. Each model loads independently; one failing doesn't affect the others. */
 export function InstancedGroups({ groups }: { groups: Record<string, Placement[]> }) {
   return (
     <>
