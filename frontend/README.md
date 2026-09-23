@@ -1,10 +1,10 @@
-# AI Sana — фронтенд (2D-экраны + мультиплеерный 3D-кампус)
+# AI Sana — frontend (2D screens + multiplayer 3D campus)
 
-React 19 + TypeScript + Vite 8 + three 0.186 + React Three Fiber 9 + drei 10. Единственный источник данных — BFF из [`../backend`](../backend/README.md) через его типизированный клиент `backend/client/index.ts`.
+React 19 + TypeScript + Vite 8 + three 0.186 + React Three Fiber 9 + drei 10. The only data source is the BFF in [`../backend`](../backend/README.md), via its typed client `backend/client/index.ts`.
 
 ## Screenshots
 
-Реальные кадры 3D-кампуса (Chromium, 1600×1000). Герой — облёт площади.
+Real frames from the 3D campus (Chromium, 1600×1000). The hero shot is a fly-over of the plaza.
 
 ### 3D Campus
 
@@ -26,29 +26,29 @@ React 19 + TypeScript + Vite 8 + three 0.186 + React Three Fiber 9 + drei 10. Е
 
 ![3D world map](docs/screenshots/world-map.png)
 
-Дополнительно: [игрок на улице](docs/screenshots/player-world.png), [отладка `?debug3d=1`](docs/screenshots/debug-3d.png).
+Also: [player on the street](docs/screenshots/player-world.png), [debug view `?debug3d=1`](docs/screenshots/debug-3d.png).
 
-## Запуск
+## Running
 ```bash
-cd backend && npm ci && cp .env.example .env   # один раз; ключ OpenAI — только в backend/.env
+cd backend && npm ci && cp .env.example .env   # once; the OpenAI key lives only in backend/.env
 cd ../frontend && npm install
-npm run dev:all      # BFF :3001 + Vite :5173 (прокси /api и /socket.io)
+npm run dev:all      # BFF :3001 + Vite :5173 (proxies /api and /socket.io)
 ```
-Открыть http://localhost:5173. Коды входа демо-профилей — в локальном `backend/demo-accounts.local.json` (не в git). Быстрый вход ссылкой: `#/login?code=<код>&name=<имя в мире>`. `npm run bots` — демо-боты (помечены «демо») для показа в одиночку.
+Open http://localhost:5173. Demo profile login codes are in the local `backend/demo-accounts.local.json` (not in git). Quick login link: `#/login?code=<code>&name=<in-world name>`. `npm run bots` starts demo bots (labelled "demo") for solo presentations.
 
-| Команда | Что делает |
+| Command | What it does |
 | --- | --- |
-| `npm run dev` / `npm run dev:all` | только Vite / BFF и Vite вместе |
-| `npm run build` | проверка типов + сборка `dist/` (раздаётся BFF при `FRONTEND_DIST=../frontend/dist`) |
-| `npm test` | планировка мира, коллизии, интерполяция |
-| `npm run assets` | копирует выбранные CC0-модели из `assets-raw/` в `public/models/` |
+| `npm run dev` / `npm run dev:all` | Vite only / BFF and Vite together |
+| `npm run build` | type check + build `dist/` (served by the BFF with `FRONTEND_DIST=../frontend/dist`) |
+| `npm test` | world layout, collisions, interpolation |
+| `npm run assets` | copies the selected CC0 models from `assets-raw/` to `public/models/` |
 
-## Экраны
-Вход по коду и создание команды · кабинет (бизнес: задачи и следующий шаг; команда: отклики, выбор, этапы) · конструктор (разбор описания с цитатами, уточнения по одному, прогноз и официальный балл, подтверждение, публикация) · сравнение откликов · этап (Git-материалы, решение бизнеса) · каталог · рейтинг · 3D-мир.
+## Screens
+Code login and team creation · dashboard (business: tasks and next step; team: applications, selection, milestones) · task builder (description breakdown with quotes, one clarifying question at a time, forecast and official score, confirmation, publishing) · application comparison · milestone (Git materials, business decision) · catalog · leaderboard · 3D world.
 
-## 3D-мир (`src/3d/`)
-Triumph Plaza в центре, до 8 главных павильонов (лучшие по готовности), остальные задачи — здания по отрасли на участках, место по `seed = hash(task.id)`; базы команд, карта (M), эмоции 1–4, idle-действия, NPC, машины, птицы, дрон; GRAND TRIUMPH — только по серверному `world.triumph` после подтверждения этапа бизнесом. Присутствие игроков — Socket.IO BFF (`backend/src/world.ts`), 12 Гц с интерполяцией; имя участника — только для таблички (в BFF у команды один общий код). Отладка: `#/world?debug3d=1`.
+## 3D world (`src/3d/`)
+Triumph Plaza in the center, up to 8 main pavilions (the most ready tasks), the remaining tasks are industry buildings on plots placed by `seed = hash(task.id)`; team bases, map (M), emotes 1–4, idle actions, NPCs, cars, birds, a drone; GRAND TRIUMPH fires only from the server's `world.triumph` after the business confirms a milestone. Player presence is Socket.IO via the BFF (`backend/src/world.ts`), 12 Hz with interpolation; the participant name is only used for the nameplate (in the BFF a team shares one code). Debug: `#/world?debug3d=1`.
 
-Модели — CC0: Kenney City Kit (Commercial), Car Kit, Mini (characters/forest/market/arcade/skate/trophy), KayKit City Builder Bits; лицензии — `public/models/LICENSES.txt`.
+Models are CC0: Kenney City Kit (Commercial), Car Kit, Mini (characters/forest/market/arcade/skate/trophy), KayKit City Builder Bits; licenses in `public/models/LICENSES.txt`.
 
-Проверено 2026-09-23 в браузере: сцена рисуется, WASD и карта `M` работают, два клиента видят друг друга, карточка задачи открывается, GRAND TRIUMPH пойман после подтверждения этапа бизнесом. В `?debug3d=1` в той сессии был FPS 60. Не утверждается стабильный 60 FPS на любом железе; визуально отчётливая синхронизация эмоций 1–4 не зафиксирована.
+Verified 2026-09-23 in a browser: the scene renders, WASD and the `M` map work, two clients see each other, the task card opens, GRAND TRIUMPH was caught after the business confirmed a milestone. `?debug3d=1` showed 60 FPS in that session. A stable 60 FPS on arbitrary hardware is not claimed; visually distinct synchronization of emotes 1–4 was not recorded.
