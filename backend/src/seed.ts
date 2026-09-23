@@ -12,8 +12,8 @@ export function seed(store: Store): { accounts: (Actor & { code: string })[] } {
       auth.addUser(actor, code);
       accounts.push({ ...actor, code });
     };
-    add({ id: 'demo-business-cafe', role: 'business', displayName: 'Кафе «Дәм»', teamId: null });
-    add({ id: 'demo-business-shop', role: 'business', displayName: 'Магазин «Кітап»', teamId: null });
+    add({ id: 'demo-business-cafe', role: 'business', displayName: 'Dam Cafe', teamId: null });
+    add({ id: 'demo-business-shop', role: 'business', displayName: 'Kitap Bookshop', teamId: null });
     const names = ['Bilge', 'Qadam', 'Orion', 'Sana Lab', 'Nomad'];
     for (let i = 0; i < 5; i++) {
       const teamId = `demo-team-${i + 1}`;
@@ -21,8 +21,8 @@ export function seed(store: Store): { accounts: (Actor & { code: string })[] } {
         store.saveTeam({
           id: teamId,
           name: names[i]!,
-          interests: [i % 2 ? 'Образование' : 'Общепит'],
-          skills: ['Аналитика', 'Веб-разработка'],
+          interests: [i % 2 ? 'Education' : 'Food service'],
+          skills: ['Analytics', 'Web development'],
           technologies: ['TypeScript', 'Python'],
           avatarPreset: ['fox', 'owl', 'robot', 'cat', 'bear'][i]!,
           color: ['#6366f1', '#059669', '#d97706', '#0891b2', '#db2777'][i]!,
@@ -32,34 +32,34 @@ export function seed(store: Store): { accounts: (Actor & { code: string })[] } {
     }
     const samples = [
       {
-        title: 'Списания в кафе',
-        industry: 'Общепит',
-        context: 'В кафе остаётся непроданная еда',
-        need: 'Сократить объём списаний',
+        title: 'Cafe food waste',
+        industry: 'Food service',
+        context: 'The cafe is left with unsold food',
+        need: 'Reduce the amount of written-off food',
       },
       {
-        title: 'Поиск книг',
-        industry: 'Торговля',
-        context: 'Продавцы долго ищут книги на полках',
-        need: 'Ускорить поиск по каталогу',
+        title: 'Book search',
+        industry: 'Retail',
+        context: 'Sellers spend a long time looking for books on shelves',
+        need: 'Speed up catalog search',
       },
       {
-        title: 'Прогноз закупок',
-        industry: 'Общепит',
-        context: 'Запасы ингредиентов закупаются вручную',
-        need: 'Планировать закупки по спросу',
+        title: 'Purchase forecast',
+        industry: 'Food service',
+        context: 'Ingredient stock is purchased manually',
+        need: 'Plan purchases based on demand',
       },
       {
-        title: 'Учёт возвратов',
-        industry: 'Торговля',
-        context: 'Возвраты фиксируются в разных таблицах',
-        need: 'Собирать обращения в одном месте',
+        title: 'Returns tracking',
+        industry: 'Retail',
+        context: 'Returns are recorded in different spreadsheets',
+        need: 'Collect return requests in one place',
       },
       {
-        title: 'Сводка отзывов',
-        industry: 'Общепит',
-        context: 'Менеджер вручную читает отзывы кафе',
-        need: 'Выделять повторяющиеся замечания',
+        title: 'Review digest',
+        industry: 'Food service',
+        context: 'A manager reads cafe reviews manually',
+        need: 'Highlight recurring complaints',
       },
     ];
     samples.forEach((sample, i) => {
@@ -84,21 +84,21 @@ export function seed(store: Store): { accounts: (Actor & { code: string })[] } {
       const fields = { ...base };
       if (i >= 1)
         Object.assign(fields, {
-          users: 'Менеджеры и сотрудники',
-          expectedResult: 'Работающий прототип с экраном результата',
+          users: 'Managers and staff',
+          expectedResult: 'A working prototype with a results screen',
         });
       if (i >= 2)
         Object.assign(fields, {
           dataAvailability: 'available',
-          dataSource: 'Синтетический CSV за три месяца',
-          constraints: 'Две недели, только синтетические данные',
+          dataSource: 'Synthetic CSV covering three months',
+          constraints: 'Two weeks, synthetic data only',
         });
       if (i >= 3)
-        fields.acceptanceCriteria = 'Загрузить пример CSV, обработать его и показать результат без ошибок';
+        fields.acceptanceCriteria = 'Upload a sample CSV, process it and show the result without errors';
       if (i >= 4)
         Object.assign(fields, {
           contact: 'demo@example.test',
-          interactionFormat: 'Две консультации по 20 минут в неделю',
+          interactionFormat: 'Two 20-minute consultations per week',
         });
       if (!store.get('tasks', `demo-task-${i + 1}`)) store.saveTask(make(`demo-task-${i + 1}`, fields, true));
       const proposalId = `demo-proposal-${i + 1}`;
@@ -107,9 +107,9 @@ export function seed(store: Store): { accounts: (Actor & { code: string })[] } {
           id: proposalId,
           taskId: `demo-task-${i + 1}`,
           teamId: `demo-team-${i + 1}`,
-          idea: 'Сделать понятный прототип для сотрудников',
-          plan: 'Изучить процесс, собрать прототип, проверить на примере',
-          estimatedTime: 'Две недели',
+          idea: 'Build a clear prototype for staff',
+          plan: 'Study the process, build a prototype, test it on an example',
+          estimatedTime: 'Two weeks',
           prototypeUrl: 'https://github.com/openai/openai-node',
           status: 'pending',
           decisionNote: '',
