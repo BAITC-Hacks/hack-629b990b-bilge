@@ -4,31 +4,49 @@
 
 Стек: React 19 + TypeScript + Vite 8 + three 0.186 + React Three Fiber 9 + drei 10. Сервер: Express 5 + Socket.IO 4 + SQLite (`node:sqlite`). Проверено на Node 22.23 и Node 24.3.
 
-## Screenshots
-
-Реальные кадры с запущенного `npm run dev` (Chromium, 1600×1000). Герой — облёт кампуса.
-
-### 3D Campus
+## Demo
 
 ![AI Sana 3D campus](docs/screenshots/3d-world-overview.png)
 
-### Multiplayer
+[5-minute demo video](docs/demo/ai-sana-3d-multiplayer-demo.mp4) — real WebGL recording: WASD walking, approach a pavilion, press `E`, open/close the task card, open the map with `M`, and two live players in one world.
 
-![Two players in the shared world](docs/screenshots/multiplayer.png)
+## Interactive Demo Flow
+
+1. Enter the 3D campus (`#/login?as=user-team-datanomads`).
+2. Walk with WASD (Shift to run); drag to rotate the camera.
+3. Approach a task pavilion until the `[E]` prompt appears.
+4. Press `E` to inspect the real seeded challenge (title, readiness, business context).
+5. Close the card and keep walking; press `M` for the world map.
+6. Meet other players in real time (second tab: `…-datanomads-2`).
+7. A business-confirmed stage result can fire **GRAND TRIUMPH** for everyone online.
+
+## Screenshots
+
+### Explore the Campus
+
+![3D Campus](docs/screenshots/3d-world-overview.png)
+
+### Walk to Business Challenges
+
+![Player approaching task](docs/screenshots/player-walking.png)
+
+### Open a Challenge in the 3D World
+
+![Task interaction](docs/screenshots/task-open.png)
+
+### Shared Multiplayer World
+
+![Multiplayer](docs/screenshots/multiplayer.png)
+
+### World Map
+
+![World map](docs/screenshots/world-map.png)
 
 ### Grand Triumph event
 
 ![Grand Triumph](docs/screenshots/grand-triumph.png)
 
-### Task interaction
-
-![Task pavilion interaction](docs/screenshots/task-building.png)
-
-### World map
-
-![3D world map](docs/screenshots/world-map.png)
-
-Дополнительно: [игрок на улице](docs/screenshots/player-world.png), [отладка `?debug3d=1`](docs/screenshots/debug-3d.png).
+Дополнительно: [павильон с подсказкой E](docs/screenshots/task-building.png), [игрок на улице](docs/screenshots/player-world.png), [отладка `?debug3d=1`](docs/screenshots/debug-3d.png).
 
 ## Запуск
 ```bash

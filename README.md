@@ -6,6 +6,8 @@ Interactive multiplayer 3D campus for discovering AI Sana business challenges.
 
 Students walk a shared WebGL world, see teammates online, open task pavilions, and celebrate a server-driven **GRAND TRIUMPH** when a business confirms a stage result.
 
+[5-minute demo video](frontend/docs/demo/ai-sana-3d-multiplayer-demo.mp4)
+
 See the full documentation, controls, architecture, and verified screenshots:
 
 [frontend/README.md](frontend/README.md)
