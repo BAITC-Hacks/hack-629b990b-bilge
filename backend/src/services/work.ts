@@ -118,7 +118,7 @@ export class Work {
       this.store.isSelected(taskId, teamId),
       403,
       'SELECTION_REQUIRED',
-      'Сначала бизнес должен выбрать вашу команду',
+      'The business must select your team first',
     );
     let created = false;
     const id = this.tasks.once(actor, `milestone:${taskId}`, key, input, () => {
@@ -126,7 +126,7 @@ export class Work {
         !this.store.all<Milestone>('milestones').some((m) => m.taskId === taskId && m.teamId === teamId),
         409,
         'MILESTONE_EXISTS',
-        'Для вашей команды уже создан этап по этой задаче',
+        'Your team already has a milestone for this task',
       );
       const item: Milestone = {
         ...input,
@@ -164,18 +164,18 @@ export class Work {
     const teamId = this.team(actor);
     const validate = () => {
       const item = this.milestone(id);
-      invariant(item.teamId === teamId, 403, 'FORBIDDEN', 'Это этап другой команды');
+      invariant(item.teamId === teamId, 403, 'FORBIDDEN', "This is another team's milestone");
       invariant(
         this.store.isSelected(item.taskId, teamId),
         403,
         'SELECTION_REQUIRED',
-        'Бизнес ещё не выбрал вашу команду или отменил выбор',
+        'The business has not selected your team yet or cancelled the selection',
       );
       invariant(
         item.status === 'draft' || item.status === 'changes_requested',
         409,
         'EVIDENCE_LOCKED',
-        'Изменить результат можно до отправки или после возврата на доработку',
+        'The result can be changed before submission or after it is returned for rework',
       );
       assertVersion(item.version, input.expectedVersion);
       return item;
@@ -226,20 +226,20 @@ export class Work {
         this.store.isSelected(item.taskId, item.teamId),
         409,
         'SELECTION_REQUIRED',
-        'Команда должна быть выбрана перед подтверждением этапа',
+        'The team must be selected before the milestone is approved',
       );
       invariant(
         item.status === 'in_review',
         409,
         'NOT_IN_REVIEW',
-        'На проверку ещё не отправлен результат этапа',
+        'No milestone result has been submitted for review yet',
       );
       if (input.decision === 'return' && !input.feedback.trim())
         throw new AppError(
           422,
           'FEEDBACK_REQUIRED',
-          'Напишите, что нужно доработать',
-          { feedback: ['Укажите, что команда должна изменить и как проверить результат'] },
+          'Describe what needs rework',
+          { feedback: ['State what the team should change and how to check the result'] },
           'correct_fields',
         );
       item.status = input.decision === 'approve' ? 'approved' : 'changes_requested';
