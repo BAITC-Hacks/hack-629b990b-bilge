@@ -157,7 +157,7 @@ export function createSanaClient(options: SanaClientOptions = {}) {
         0,
         {
           code: aborted ? 'REQUEST_ABORTED' : 'NETWORK_ERROR',
-          message: aborted ? 'Запрос отменён' : 'Не удалось связаться с сервером',
+          message: aborted ? 'Request cancelled' : 'Could not reach the server',
           fieldErrors: {},
           recovery: aborted ? null : 'retry',
         },
@@ -175,7 +175,7 @@ export function createSanaClient(options: SanaClientOptions = {}) {
           0,
           {
             code: 'REQUEST_ABORTED',
-            message: 'Запрос отменён',
+            message: 'Request cancelled',
             fieldErrors: {},
             recovery: null,
           },
@@ -196,7 +196,7 @@ export function createSanaClient(options: SanaClientOptions = {}) {
           ? payload.error
           : {
               code: 'HTTP_ERROR',
-              message: `Сервер вернул ошибку ${response.status}`,
+              message: `The server returned error ${response.status}`,
               fieldErrors: {},
               recovery: response.status >= 500 ? 'retry' : null,
             };
@@ -207,7 +207,7 @@ export function createSanaClient(options: SanaClientOptions = {}) {
         response.status,
         {
           code: 'INVALID_RESPONSE',
-          message: 'Сервер вернул ответ неизвестного формата',
+          message: 'The server returned a response in an unknown format',
           fieldErrors: {},
           recovery: 'retry',
         },
