@@ -1,27 +1,27 @@
-# AI Sana — Площадь задач
+# AI Sana — Task Square
 
-Бизнес описывает практические задачи, студенческие команды предлагают решения, а бизнес подтверждает выбор и результат.
+A business describes practical tasks, student teams propose solutions, and the business confirms the selection and the result.
 
 ## Language
 
-**Карточка задачи**: описание одной бизнес-проблемы и условий её решения. _Avoid_: этап.
+**Task card**: a description of one business problem and the conditions for solving it. _Avoid_: milestone.
 
-**Черновик редактирования**: рабочие изменения, ещё не подтверждённые бизнесом.
+**Editing draft**: working changes not yet confirmed by the business.
 
-**Подтверждённая карточка**: проверенная бизнесом версия описания, используемая для официальной оценки.
+**Confirmed card**: the business-verified version of the description, used for the official score.
 
-**Готовность**: полнота подтверждённой карточки по шкале 0–100. _Avoid_: очки команды.
+**Readiness**: the completeness of the confirmed card on a 0–100 scale. _Avoid_: team points.
 
-**Публикация**: доступность подтверждённой карточки всем командам независимо от готовности.
+**Publication**: availability of the confirmed card to all teams regardless of readiness.
 
-**Отклик**: предложение команды решить задачу; бизнес принимает решение по каждому отклику.
+**Proposal**: a team's offer to solve the task; the business decides on each proposal.
 
-**Выбранная команда**: команда с принятым бизнесом откликом; у задачи может быть несколько выбранных команд.
+**Selected team**: a team whose proposal the business accepted; a task can have several selected teams.
 
-**Этап**: проверяемая часть работы выбранной команды с заранее известным критерием приёмки.
+**Milestone**: a verifiable part of the selected team's work with an acceptance criterion known in advance.
 
-**Свидетельство результата**: ссылка на материалы и описание сделанного; само по себе не подтверждает успех.
+**Result evidence**: a link to materials and a description of what was done; on its own it does not confirm success.
 
-**Очки команды**: награда за этап, подтверждённый бизнесом; не изменяет готовность карточки.
+**Team points**: the reward for a milestone confirmed by the business; does not change the card's readiness.
 
-**Павильон**: представление опубликованной карточки в 3D-каталоге.
+**Pavilion**: the representation of a published card in the 3D catalog.
