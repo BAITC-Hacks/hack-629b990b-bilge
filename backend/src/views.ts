@@ -11,7 +11,13 @@ import {
   type TaskFields,
   type Team,
 } from './contracts.js';
-import { calculateScore, hasMetricAndTarget, levelLabels, meaningful } from './domain/score.js';
+import {
+  calculateScore,
+  hasMetricAndTarget,
+  levelLabels,
+  meaningful,
+  validCardHeading,
+} from './domain/score.js';
 import { Store } from './db.js';
 import { invariant } from './errors.js';
 import { Tasks } from './services/tasks.js';
@@ -109,6 +115,81 @@ export class Views {
           .map((p) => p.teamId),
       ),
     ].map((id) => this.team(id));
+  }
+  proposalView(item: Proposal) {
+    const labels = {
+      pending: 'Ожидает решения',
+      selected: 'Предложение выбрано',
+      rejected: 'Предложение отклонено',
+    };
+    const hints = {
+      pending: 'Бизнес ещё не принял решение. Предложение сохранено.',
+      selected: 'Предложение выбрано бизнесом. Текущее состояние работы указано отдельно.',
+      rejected:
+        'Предложение отклонено. Команда может предложить другой подход; решения по остальным предложениям сохраняются.',
+    };
+    return { ...item, statusLabel: labels[item.status], statusHint: hints[item.status] };
+  }
+  participation(taskId: string, actor: Actor | null) {
+    if (actor?.role !== 'team' || !actor.teamId) return null;
+    const proposals = this.proposals(taskId).filter((p) => p.teamId === actor.teamId);
+    const selected = this.store.isSelected(taskId, actor.teamId);
+    const milestone = this.milestones(taskId).find((m) => m.teamId === actor.teamId);
+    const status =
+      milestone && !selected
+        ? 'paused'
+        : selected
+          ? (milestone?.status ?? 'selected')
+          : proposals.some((p) => p.status === 'pending')
+            ? 'pending'
+            : proposals.length
+              ? 'rejected'
+              : 'not_applied';
+    const labels = {
+      not_applied: 'Вы ещё не откликались',
+      pending: 'Ожидает решения',
+      rejected: 'Предложения отклонены',
+      selected: 'Ваша команда выбрана',
+      draft: 'Подготовка результата',
+      in_review: 'Результат на проверке',
+      changes_requested: 'Нужна доработка',
+      approved: 'Этап подтверждён',
+      paused: 'Работа приостановлена',
+    };
+    const hints = {
+      not_applied: 'Опишите идею и план. Низкая готовность карточки не мешает отклику.',
+      pending: 'Бизнес изучает предложение. Пока можно посмотреть другие задачи.',
+      rejected: 'Посмотрите комментарий бизнеса. Можно отправить новый подход или найти другую задачу.',
+      selected: 'Создайте этап и укажите, какой результат бизнес сможет проверить.',
+      draft: 'Откройте этап, приложите результат и отправьте его бизнесу.',
+      in_review: 'Результат сохранён и ожидает решения бизнеса. Очки появятся после подтверждения.',
+      changes_requested: 'Откройте замечания бизнеса, доработайте результат и отправьте его снова.',
+      approved: 'Результат принят, 10 очков начислены. Можно выбрать следующую задачу.',
+      paused:
+        'Выбор команды отменён. Материалы сохранены; продолжить можно после повторного выбора бизнесом.',
+    };
+    const nextAction = {
+      id: milestone
+        ? 'open_milestone'
+        : selected
+          ? 'create_milestone'
+          : status === 'pending'
+            ? 'open_dashboard'
+            : 'propose',
+      label: milestone
+        ? status === 'changes_requested'
+          ? 'Посмотреть замечания'
+          : 'Открыть этап'
+        : selected
+          ? 'Создать этап'
+          : status === 'pending'
+            ? 'Посмотреть мои отклики'
+            : 'Отправить предложение',
+      hint: hints[status],
+      taskId,
+      milestoneId: milestone?.id ?? null,
+    };
+    return { status, statusLabel: labels[status], statusHint: hints[status], nextAction };
   }
   summary(task: Task, actor: Actor | null) {
     const fields = task.confirmedFields!;
@@ -214,6 +295,7 @@ export class Views {
   detail(id: string, actor: Actor | null) {
     const task = this.tasks.public(id);
     const owner = task.businessUserId === actor?.id;
+    const participation = this.participation(id, actor);
     return {
       screen: 'task-detail' as const,
       card: {
@@ -221,7 +303,12 @@ export class Views {
         fields: task.confirmedFields!,
         score: calculateScore(task.confirmedFields!),
       },
-      myProposals: actor?.teamId ? this.proposals(id).filter((p) => p.teamId === actor.teamId) : [],
+      myProposals: actor?.teamId
+        ? this.proposals(id)
+            .filter((p) => p.teamId === actor.teamId)
+            .map((p) => this.proposalView(p))
+        : [],
+      participation,
       teamProgress: this.selected(id).map((team) => {
         const stages = this.milestones(id).filter((m) => m.teamId === team.id);
         const approvedStages = stages.filter((m) => m.status === 'approved').length;
@@ -240,7 +327,17 @@ export class Views {
         };
       }),
       actions: [
-        action('propose', 'Отправить предложение', actor?.role === 'team', 'Войдите под командой'),
+        ...(participation && participation.nextAction.id !== 'propose'
+          ? [action(participation.nextAction.id, participation.nextAction.label)]
+          : []),
+        action(
+          'propose',
+          participation && participation.status !== 'not_applied'
+            ? 'Предложить другой подход'
+            : 'Отправить предложение',
+          actor?.role === 'team',
+          'Войдите под командой',
+        ),
         ...(owner ? [action('edit', 'Улучшить карточку'), action('review', 'Сравнить отклики')] : []),
       ],
     };
@@ -250,7 +347,8 @@ export class Views {
     const officialScore = task.confirmedFields ? calculateScore(task.confirmedFields) : null;
     const forecast = calculateScore(task.draftFields);
     const hasUnconfirmedChanges = JSON.stringify(task.draftFields) !== JSON.stringify(task.confirmedFields);
-    const titleValid = meaningful(task.draftFields.title) && meaningful(task.draftFields.industry);
+    const titleValid =
+      validCardHeading(task.draftFields.title) && validCardHeading(task.draftFields.industry);
     const needsInitialClarification = !task.clarifiedAt && !task.confirmedFields;
     const clarification = clarificationView(task);
     const continueQuestions = clarification?.nextQuestion && !clarification.reviewed;
@@ -372,13 +470,13 @@ export class Views {
       selectionPolicy:
         'Можно выбрать несколько команд или никого. Остальные команды сохраняют право на отклик.',
       proposals: this.proposals(id).map((p) => ({
-        ...p,
+        ...this.proposalView(p),
         team: this.team(p.teamId),
         actions: [
           action('select', 'Выбрать команду', p.status !== 'selected', 'Команда уже выбрана'),
           action(
             'reject',
-            'Отклонить',
+            p.status === 'selected' ? 'Отменить выбор предложения' : 'Отклонить',
             p.status !== 'rejected' && mayRejectProposal(this.store, p),
             'Отклик уже отклонён или у выбранной команды подтверждён этап',
           ),
@@ -412,7 +510,9 @@ export class Views {
       approved: 'Этап подтверждён',
     };
     const statusHints = {
-      draft: 'Добавьте ссылку на Git/PR и опишите выполненную работу.',
+      draft: owner
+        ? 'Команда готовит результат. После отправки вы сможете проверить его и принять решение.'
+        : 'Добавьте ссылку на Git/PR и опишите выполненную работу.',
       in_review: owner
         ? 'Проверьте результат по критериям этапа и примите решение.'
         : 'Бизнес проверяет результат. Очки появятся после подтверждения.',
@@ -423,7 +523,25 @@ export class Views {
     };
     return {
       ...item,
-      statusLabel: statusLabels[item.status],
+      reviewHistory: item.reviewHistory ?? [],
+      previousFeedback:
+        item.reviewHistory
+          ?.slice()
+          .reverse()
+          .find((decision) => decision.decision === 'return')?.feedback ??
+        (item.status === 'changes_requested' ? item.feedback : null),
+      reviewNotice:
+        item.evidence &&
+        item.status !== 'approved' &&
+        (item.evidence.status !== 'verified' || item.review?.mode !== 'openai')
+          ? {
+              kind: 'manual' as const,
+              message: owner
+                ? 'Автоматическая проверка неполная. Материалы сохранены: проверьте ссылку и критерии вручную. Недоступность AI или Git сама по себе не означает плохой результат.'
+                : 'Материалы сохранены. Автоматическая проверка неполная, поэтому окончательное решение принимает бизнес вручную.',
+            }
+          : null,
+      statusLabel: selected ? statusLabels[item.status] : 'Работа приостановлена',
       statusHint: !selected
         ? 'Выбор команды отменён. Продолжить можно после повторного выбора бизнесом.'
         : statusHints[item.status],
@@ -465,17 +583,50 @@ export class Views {
       return {
         screen: 'business-dashboard' as const,
         actor,
-        tasks: tasks.map((t) => ({
-          id: t.id,
-          version: t.version,
-          title: t.draftFields.title,
-          publicationStatus: t.publicationStatus,
-          readiness: calculateScore(t.confirmedFields ?? emptyFields()),
-          hasUnconfirmedChanges: JSON.stringify(t.draftFields) !== JSON.stringify(t.confirmedFields),
-          pendingProposals: this.proposals(t.id).filter((p) => p.status === 'pending').length,
-          pendingReviews: this.milestones(t.id).filter((m) => m.status === 'in_review').length,
-          actions: [action('edit', 'Открыть конструктор'), action('review', 'Сравнить отклики')],
-        })),
+        tasks: tasks.map((t) => {
+          const stages = this.milestones(t.id);
+          const pendingReviews = stages.filter(
+            (m) => m.status === 'in_review' && this.store.isSelected(t.id, m.teamId),
+          ).length;
+          const pausedMilestones = stages.filter((m) => !this.store.isSelected(t.id, m.teamId)).length;
+          const pendingProposals = this.proposals(t.id).filter((p) => p.status === 'pending').length;
+          const hasUnconfirmedChanges = JSON.stringify(t.draftFields) !== JSON.stringify(t.confirmedFields);
+          return {
+            id: t.id,
+            version: t.version,
+            title: t.draftFields.title,
+            publicationStatus: t.publicationStatus,
+            readiness: calculateScore(t.confirmedFields ?? emptyFields()),
+            hasUnconfirmedChanges,
+            pendingProposals,
+            pendingReviews,
+            pausedMilestones,
+            nextAction: pendingReviews
+              ? {
+                  id: 'review',
+                  label: 'Проверить результат',
+                  hint: `Этапов на проверке: ${pendingReviews}`,
+                  taskId: t.id,
+                }
+              : pendingProposals
+                ? {
+                    id: 'review',
+                    label: 'Сравнить отклики',
+                    hint: `Новых предложений: ${pendingProposals}`,
+                    taskId: t.id,
+                  }
+                : {
+                    id: 'edit',
+                    label:
+                      t.publicationStatus === 'draft' || hasUnconfirmedChanges
+                        ? 'Продолжить карточку'
+                        : 'Открыть карточку',
+                    hint: 'Сведения и прогресс сохранены',
+                    taskId: t.id,
+                  },
+            actions: [action('edit', 'Открыть конструктор'), action('review', 'Сравнить отклики')],
+          };
+        }),
         actions: [action('start_task', 'Описать новую задачу')],
       };
     }
@@ -486,7 +637,7 @@ export class Views {
       actor,
       team: this.team(actor.teamId!),
       proposals: proposals.map((p) => ({
-        ...p,
+        ...this.proposalView(p),
         taskTitle: this.tasks.require(p.taskId).confirmedFields?.title ?? '',
       })),
       milestones: milestones.map((m) => this.milestoneView(m, actor)),
@@ -495,6 +646,7 @@ export class Views {
           id,
           title: this.tasks.require(id).confirmedFields!.title,
           canCreateMilestone: !milestones.some((m) => m.taskId === id),
+          nextAction: this.participation(id, actor)!.nextAction,
         }),
       ),
       actions: [action('browse', 'Найти задачу')],

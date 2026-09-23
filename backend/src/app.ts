@@ -239,12 +239,16 @@ export function createApp(options: AppOptions) {
   });
   api.post('/milestones/:id/decision', (req, res) => {
     const user = actor(req);
-    const item = work.review(user, id(req), commands.review.parse(req.body));
+    const input = commands.review.parse(req.body);
+    const alreadyApproved = work.milestone(id(req)).status === 'approved';
+    const item = work.review(user, id(req), input);
     send(
       res,
       views.milestone(item.id, user),
       item.status === 'approved'
-        ? 'Этап подтверждён. Команде начислено 10 очков.'
+        ? alreadyApproved
+          ? 'Этап уже подтверждён. Повторного начисления нет.'
+          : 'Этап подтверждён. Команде начислено 10 очков.'
         : 'Этап возвращён на доработку',
     );
   });

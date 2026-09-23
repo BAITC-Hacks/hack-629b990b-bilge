@@ -12,7 +12,7 @@ import {
 } from '../contracts.js';
 import { Store } from '../db.js';
 import { assertVersion, invariant, AppError } from '../errors.js';
-import { calculateScore, meaningful } from '../domain/score.js';
+import { calculateScore, validCardHeading } from '../domain/score.js';
 
 export type Emit = (event: DomainEvent) => void;
 export class Tasks {
@@ -284,8 +284,8 @@ export class Tasks {
       const task = this.own(actor, id);
       assertVersion(task.version, expected);
       const fieldErrors: Record<string, string[]> = {};
-      if (!meaningful(task.draftFields.title)) fieldErrors.title = ['Укажите понятное название задачи'];
-      if (!meaningful(task.draftFields.industry)) fieldErrors.industry = ['Укажите отрасль'];
+      if (!validCardHeading(task.draftFields.title)) fieldErrors.title = ['Укажите понятное название задачи'];
+      if (!validCardHeading(task.draftFields.industry)) fieldErrors.industry = ['Укажите отрасль'];
       if (Object.keys(fieldErrors).length)
         throw new AppError(422, 'REVIEW_REQUIRED', 'Проверьте карточку перед подтверждением', fieldErrors);
       task.confirmedFields = structuredClone(task.draftFields);

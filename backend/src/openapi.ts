@@ -147,6 +147,8 @@ const schemas: Record<string, Schema> = {
     estimatedTime: string,
     prototypeUrl: string,
     status: { type: 'string', enum: ['pending', 'selected', 'rejected'] },
+    statusLabel: string,
+    statusHint: string,
     decisionNote: string,
     version: integer,
     createdAt: string,
@@ -267,6 +269,16 @@ const schemas: Record<string, Schema> = {
     evidence: nullable(ref('Evidence')),
     review: nullable(ref('EvidenceReview')),
     feedback: string,
+    reviewHistory: array(
+      object({
+        decision: { type: 'string', enum: ['approve', 'return'] },
+        feedback: string,
+        decidedAt: nullable(string),
+        version: integer,
+      }),
+    ),
+    previousFeedback: nullable(string),
+    reviewNotice: nullable(object({ kind: { type: 'string', const: 'manual' }, message: string })),
     version: integer,
     approvedBy: nullable(string),
     approvedAt: nullable(string),
@@ -317,6 +329,7 @@ const schemas: Record<string, Schema> = {
   DetailView: screen('task-detail', 'DetailView', {
     card: { allOf: [ref('Card'), object({ fields: ref('TaskFields'), score: ref('Score') })] },
     myProposals: array(ref('Proposal')),
+    participation: nullable(ref('Participation')),
     teamProgress: array(
       object({
         teamId: string,
@@ -328,6 +341,32 @@ const schemas: Record<string, Schema> = {
       }),
     ),
     actions,
+  }),
+  ParticipationAction: object({
+    id: { type: 'string', enum: ['propose', 'open_dashboard', 'create_milestone', 'open_milestone'] },
+    label: string,
+    hint: string,
+    taskId: string,
+    milestoneId: nullable(string),
+  }),
+  Participation: object({
+    status: {
+      type: 'string',
+      enum: [
+        'not_applied',
+        'pending',
+        'rejected',
+        'selected',
+        'draft',
+        'in_review',
+        'changes_requested',
+        'approved',
+        'paused',
+      ],
+    },
+    statusLabel: string,
+    statusHint: string,
+    nextAction: ref('ParticipationAction'),
   }),
   WorkspaceView: screen('task-workspace', 'WorkspaceView', {
     task: object({
@@ -427,6 +466,8 @@ const schemas: Record<string, Schema> = {
         hasUnconfirmedChanges: boolean,
         pendingProposals: integer,
         pendingReviews: integer,
+        pausedMilestones: integer,
+        nextAction: object({ id: string, label: string, hint: string, taskId: string }),
         actions,
       }),
     ),
@@ -437,7 +478,14 @@ const schemas: Record<string, Schema> = {
     team: ref('Team'),
     proposals: array({ allOf: [ref('Proposal'), object({ taskTitle: string })] }),
     milestones: array(ref('MilestoneItem')),
-    selectedTasks: array(object({ id: string, title: string, canCreateMilestone: boolean })),
+    selectedTasks: array(
+      object({
+        id: string,
+        title: string,
+        canCreateMilestone: boolean,
+        nextAction: ref('ParticipationAction'),
+      }),
+    ),
     actions,
   }),
   DashboardView: {

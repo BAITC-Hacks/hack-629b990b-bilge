@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { commands, type Actor, type GitProvider, type Milestone, type Proposal } from '../contracts.js';
-import { assertVersion, invariant } from '../errors.js';
+import { AppError, assertVersion, invariant } from '../errors.js';
 import { Tasks } from './tasks.js';
 import type { Store } from '../db.js';
 
@@ -190,6 +190,11 @@ export class Work {
     });
     const item = this.tasks.commitAi(before.taskId, id, input.expectedVersion, review.run, () => {
       const item = validate();
+      // Preserve return notes from older rows too; their original time is unknown.
+      if (item.status === 'changes_requested' && item.feedback && !item.reviewHistory?.length)
+        item.reviewHistory = [
+          { decision: 'return', feedback: item.feedback, decidedAt: null, version: item.version },
+        ];
       item.evidenceUrl = input.evidenceUrl;
       item.description = input.description;
       item.evidence = evidence;
@@ -229,17 +234,29 @@ export class Work {
         'NOT_IN_REVIEW',
         'На проверку ещё не отправлен результат этапа',
       );
-      invariant(
-        input.decision !== 'return' || input.feedback.trim().length > 0,
-        422,
-        'FEEDBACK_REQUIRED',
-        'Напишите, что нужно доработать',
-      );
+      if (input.decision === 'return' && !input.feedback.trim())
+        throw new AppError(
+          422,
+          'FEEDBACK_REQUIRED',
+          'Напишите, что нужно доработать',
+          { feedback: ['Укажите, что команда должна изменить и как проверить результат'] },
+          'correct_fields',
+        );
       item.status = input.decision === 'approve' ? 'approved' : 'changes_requested';
       item.feedback = input.feedback;
       item.version++;
+      const decidedAt = new Date().toISOString();
+      item.reviewHistory = [
+        ...(item.reviewHistory ?? []),
+        {
+          decision: input.decision,
+          feedback: input.feedback,
+          decidedAt,
+          version: item.version,
+        },
+      ].slice(-20);
       if (item.status === 'approved') {
-        item.approvedAt = new Date().toISOString();
+        item.approvedAt = decidedAt;
         item.approvedBy = actor.id;
         this.store.awardMilestone({ ...item, approvedAt: item.approvedAt });
       }

@@ -6,19 +6,22 @@ export const levelLabels: Record<Level, string> = {
   ready: 'Готовая',
   priority: 'Приоритетная',
 };
-export const meaningful = (value: string): boolean => {
+const meaningfulText = (value: string, minimumLength: number): boolean => {
   const clean = value
     .trim()
     .toLowerCase()
     .replace(/[.!?…]+$/u, '');
   return (
-    clean.length >= 3 &&
+    clean.length >= minimumLength &&
     /[\p{L}\p{N}]/u.test(clean) &&
     !/^((?:пока )?не знаю|потом уточню|уточню|нет|не указано|todo|tbd|test|тест|unknown|n\/a|placeholder|пока нет)$/iu.test(
       clean,
     )
   );
 };
+export const meaningful = (value: string): boolean => meaningfulText(value, 3);
+/** Headings can be short acronyms (IT, AI); descriptive score fields retain their existing rules. */
+export const validCardHeading = (value: string): boolean => meaningfulText(value, 2);
 export function getLevel(value: number): Level {
   return value >= 90 ? 'priority' : value >= 70 ? 'ready' : value >= 40 ? 'working' : 'draft';
 }

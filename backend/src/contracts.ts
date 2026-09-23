@@ -131,6 +131,13 @@ export type Milestone = {
   evidence: EvidenceResult | null;
   review: EvidenceReview | null;
   feedback: string;
+  reviewHistory?: {
+    decision: 'approve' | 'return';
+    feedback: string;
+    /** Null only for a return imported from a legacy row without a timestamp. */
+    decidedAt: string | null;
+    version: number;
+  }[];
   version: number;
   approvedBy: string | null;
   approvedAt: string | null;
