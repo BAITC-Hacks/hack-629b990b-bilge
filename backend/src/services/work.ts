@@ -32,18 +32,18 @@ export class Work {
       actor.role === 'team' && actor.teamId,
       403,
       'TEAM_REQUIRED',
-      'Для этого действия войдите под командой',
+      'Sign in as a team for this action',
     );
     return actor.teamId;
   }
   proposal(id: string) {
     const item = this.store.get<Proposal>('proposals', id);
-    invariant(item, 404, 'PROPOSAL_NOT_FOUND', 'Отклик не найден');
+    invariant(item, 404, 'PROPOSAL_NOT_FOUND', 'Proposal not found');
     return item;
   }
   milestone(id: string) {
     const item = this.store.get<Milestone>('milestones', id);
-    invariant(item, 404, 'MILESTONE_NOT_FOUND', 'Этап не найден');
+    invariant(item, 404, 'MILESTONE_NOT_FOUND', 'Milestone not found');
     return item;
   }
   propose(actor: Actor, taskId: string, input: z.infer<typeof commands.proposal>, key?: string) {
@@ -90,7 +90,7 @@ export class Work {
           mayRejectProposal(this.store, item),
           409,
           'APPROVED_WORK',
-          'Нельзя отменить выбор команды с подтверждённым этапом',
+          'Cannot cancel the selection of a team with an approved milestone',
         );
       }
       item.status = status;
