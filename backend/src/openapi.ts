@@ -538,10 +538,10 @@ const auth = {
   },
   owner: {
     security: [{ bearerAuth: [] }] as Security,
-    description: 'Business role and task owner only; otherwise 403.',
+    description: 'Only the business role and the task owner; otherwise 403.',
   },
-  business: { security: [{ bearerAuth: [] }] as Security, description: 'Business role only; otherwise 403.' },
-  team: { security: [{ bearerAuth: [] }] as Security, description: 'Team role only; otherwise 403.' },
+  business: { security: [{ bearerAuth: [] }] as Security, description: 'Only the business role; otherwise 403.' },
+  team: { security: [{ bearerAuth: [] }] as Security, description: 'Only the team role; otherwise 403.' },
   participant: {
     security: [{ bearerAuth: [] }] as Security,
     description: 'Task owner (business) or milestone team (team); other members get 403.',
