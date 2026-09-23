@@ -23,11 +23,10 @@ Browser / Node BFF
 
 - API implemented (`/health`, job create/poll, generated GLB serving, optional sync test endpoint)
 - Hunyuan integration implemented (shape-only wrapper)
-- RTX 4090 local inference currently being validated
-- shape-only is P0
+- First local shape-only generation **validated** on an RTX 4090 with a full-body photo
+- rembg / BRIA ONNX is **skipped** on P0 (that 1GB download blocked first inference)
 - texture / Hunyuan3D-Paint is optional and **disabled** by default (`HUNYUAN_ENABLE_PAINT=0`)
-
-Do **not** treat the first generation as passed until a real GLB is produced on a GPU machine.
+- Generated GLBs are **not** stored in git
 
 ## Privacy
 

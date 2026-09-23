@@ -116,15 +116,9 @@ class HunyuanAvatarBackend(AvatarBackend):
     def _prepare_image(self, image_path: Path):
         from PIL import Image
 
+        # P0: skip rembg. Its default BRIA model is a 1GB download and blocks first inference.
         image = Image.open(image_path).convert("RGBA")
-        try:
-            from hy3dgen.rembg import BackgroundRemover
-
-            if self._rembg is None:
-                self._rembg = BackgroundRemover()
-            image = self._rembg(image)
-        except Exception as exc:
-            logger.warning("Local background removal skipped: %s", exc)
+        logger.info("Using original photo without rembg (shape-only P0)")
         return image
 
     def generate(self, image_path: Path, output_path: Path, progress=None) -> AvatarGenerationResult:

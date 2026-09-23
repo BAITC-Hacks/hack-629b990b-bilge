@@ -22,8 +22,10 @@ def validate_glb(path: Path) -> str:
     import trimesh
 
     loaded = trimesh.load(str(path), force="mesh")
-    verts = len(getattr(loaded, "vertices", []) or [])
-    faces = len(getattr(loaded, "faces", []) or [])
+    verts_arr = getattr(loaded, "vertices", None)
+    faces_arr = getattr(loaded, "faces", None)
+    verts = 0 if verts_arr is None else len(verts_arr)
+    faces = 0 if faces_arr is None else len(faces_arr)
     if verts < 8 or path.stat().st_size < 64:
         raise RuntimeError(f"GLB too small or empty: size={path.stat().st_size} verts={verts}")
     return f"TRIMESH_OK vertices={verts} faces={faces}"
