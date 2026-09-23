@@ -1,7 +1,7 @@
-// GRAND TRIUMPH: запускается только серверным событием world.triumph (бизнес подтвердил результат).
-// Последовательность ~9 с: подсветка здания и маяк (в TaskBuilding) → монумент загорается (Monument) →
-// световая волна по миру → конфетти и «фейерверки» над площадью, зданием и базой команды → объявление (HUD).
-// Частиц умеренно (≈ 520 инстансов), при reduced-motion — только объявление и подсветка.
+// GRAND TRIUMPH: triggered only by the server's world.triumph event (the business confirmed the result).
+// ~9 s sequence: building highlight and beacon (in TaskBuilding) → the monument lights up (Monument) →
+// a light wave across the world → confetti and "fireworks" over the plaza, the building and the team base → announcement (HUD).
+// Moderate particle count (≈ 520 instances); with reduced motion — only the announcement and highlight.
 import { useMemo, useRef, useSyncExternalStore } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
@@ -23,8 +23,8 @@ export function TriumphEvent({ events, layout, reduced }: { events: WorldEventMa
       <Html position={[0, 27, 0]} center zIndexRange={[45, 0]} style={{ pointerEvents: 'none' }}>
         <div className="triumph-sky">
           <div className="ts-kicker">GRAND TRIUMPH</div>
-          <div className="ts-main">Команда «{triumph.teamName}»</div>
-          <div className="ts-sub">завершила задачу «{triumph.taskTitle}»</div>
+          <div className="ts-main">Team “{triumph.teamName}”</div>
+          <div className="ts-sub">completed the task “{triumph.taskTitle}”</div>
         </div>
       </Html>
       {!reduced && <Wave events={events} />}
@@ -40,7 +40,7 @@ function Wave({ events }: { events: WorldEventManager }) {
   useFrame(() => {
     const t = events.triumphProgress();
     if (!ref.current || !mat.current) return;
-    // волна идёт со 2-й по 4-ю секунду от монумента к краю мира
+    // the wave travels from the monument to the world edge between seconds 2 and 4
     const k = THREE.MathUtils.clamp((t * 9 - 1.8) / 2.2, 0, 1);
     const r = 2 + k * 120;
     ref.current.scale.set(r, r, 1);
