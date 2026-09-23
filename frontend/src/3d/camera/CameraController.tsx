@@ -1,5 +1,5 @@
-// Камера: третье лицо с возвышения (как в casual exploration), карта сверху (M), короткий облёт при первом входе.
-// Перетаскивание мышью вращает камеру (в карте — сдвигает), колесо — приближение. Клик после перетаскивания не считается кликом.
+// Camera: elevated third person (as in casual exploration), top-down map (M), a short fly-over on first entry.
+// Mouse drag rotates the camera (pans in the map), the wheel zooms. A click after a drag doesn't count as a click.
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -11,7 +11,7 @@ export interface CameraState {
   pitch: number;
   dist: number;
   map: { x: number; z: number; zoom: number };
-  /** цель «фокуса» карты (например, «Моя команда») — камера плавно к ней подлетает */
+  /** map "focus" target (e.g. "My team") — the camera smoothly flies to it */
   mapTarget: { x: number; z: number; zoom: number } | null;
 }
 
@@ -26,7 +26,7 @@ interface Props {
   dragRef: React.MutableRefObject<{ moved: boolean }>;
   reduced: boolean;
   onIntroEnd: () => void;
-  /** точки облёта: площадь, задачи, базы команд */
+  /** fly-over points: plaza, tasks, team bases */
   tour: { teamsZ: number; businessZ: number };
   focus: React.MutableRefObject<THREE.Vector3>;
 }
@@ -38,7 +38,7 @@ export function CameraController({ mode, state, player, dragRef, reduced, onIntr
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
-  // облёт: сверху → Triumph Plaza → бизнес-квартал → базы команд → за спину персонажа
+  // fly-over: from above → Triumph Plaza → business district → team bases → behind the character
   const intro = useMemo(() => ({
     pos: new THREE.CatmullRomCurve3([
       new THREE.Vector3(0, 140, 190), new THREE.Vector3(46, 52, 48), new THREE.Vector3(-30, 44, -tour.businessZ + 30),
@@ -106,7 +106,7 @@ export function CameraController({ mode, state, player, dragRef, reduced, onIntr
       if (introStart.current === null) introStart.current = clock.clock.elapsedTime;
       const t = Math.min(1, (clock.clock.elapsedTime - introStart.current) / 6.5);
       const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      // последняя точка облёта — за спиной персонажа
+      // the last fly-over point is behind the character
       intro.pos.points[4].set(p.x + Math.sin(s.yaw) * s.dist * Math.cos(s.pitch), 1.6 + Math.sin(s.pitch) * s.dist, p.z + Math.cos(s.yaw) * s.dist * Math.cos(s.pitch));
       intro.look.points[4].set(p.x, 1.6, p.z);
       intro.pos.getPoint(e, desired);
