@@ -7,8 +7,9 @@ export type QualityWarning = {
   message: string;
   actionLabel: string;
 };
+// Generic phrases are matched in both Russian and English, since users may type either language.
 const generic =
-  /^(?:сделать лучше|улучшить|улучшить всё|решить проблему|всё хорошо|все хорошо|что-нибудь|не знаю|пока не знаю|test|тест|todo|tbd|нет информации)[.!?\s]*$/iu;
+  /^(?:сделать лучше|улучшить|улучшить всё|решить проблему|всё хорошо|все хорошо|что-нибудь|не знаю|пока не знаю|test|тест|todo|tbd|нет информации|make it better|improve|improve everything|solve the problem|everything is fine|all good|something|anything|(?:i )?(?:don'?t|do not) know(?: yet)?|no information|n\/a|unknown)[.!?\s]*$/iu;
 const descriptionFields: FieldKey[] = [
   'context',
   'need',
@@ -33,8 +34,8 @@ export function checkQuality(fields: TaskFields) {
         id: `vague:${field}`,
         field,
         relatedFields: [],
-        message: 'Общая фраза не объясняет задачу. Добавьте конкретный факт или наблюдаемый результат.',
-        actionLabel: 'Уточнить формулировку',
+        message: 'A generic phrase does not explain the task. Add a concrete fact or an observable result.',
+        actionLabel: 'Clarify the wording',
       });
   }
   const groups = new Map<string, FieldKey[]>();
@@ -48,8 +49,8 @@ export function checkQuality(fields: TaskFields) {
         id: `repeated:${duplicates[0]}`,
         field: duplicates[0]!,
         relatedFields: duplicates.slice(1),
-        message: 'Один текст повторяется в разных полях. Проверьте, что каждое поле отвечает на свой вопрос.',
-        actionLabel: 'Проверить повторения',
+        message: 'The same text is repeated in several fields. Check that each field answers its own question.',
+        actionLabel: 'Check repetitions',
       });
   if (fields.dataAvailability === 'none' && fields.dataSource.trim())
     warnings.push({
@@ -57,21 +58,21 @@ export function checkQuality(fields: TaskFields) {
       field: 'dataAvailability',
       relatedFields: ['dataSource'],
       message:
-        'Указано, что данных нет, но источник заполнен. Уточните: данные уже доступны или их только предстоит собрать.',
-      actionLabel: 'Уточнить доступность данных',
+        'Data is marked as unavailable, but a source is filled in. Clarify whether the data is already available or still needs to be collected.',
+      actionLabel: 'Clarify data availability',
     });
   if (fields.noConstraints && fields.constraints.trim())
     warnings.push({
       id: 'conflict:constraints',
       field: 'noConstraints',
       relatedFields: ['constraints'],
-      message: 'Отмечено отсутствие ограничений, но текст ограничений заполнен. Проверьте оба значения.',
-      actionLabel: 'Проверить ограничения',
+      message: 'No constraints is checked, but constraint text is filled in. Check both values.',
+      actionLabel: 'Check constraints',
     });
   return {
     warnings,
     notice:
-      'Балл отражает заполненность по правилам хакатона. Подсказки помогают проверить содержание и не меняют баллы автоматически.',
+      'The score reflects completeness under the hackathon rules. Hints help check the content and never change the score automatically.',
     nextAction: warnings[0]
       ? {
           id: 'edit_field',
