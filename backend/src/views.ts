@@ -25,21 +25,21 @@ import { mayRejectProposal } from './services/work.js';
 import { checkQuality } from './domain/quality.js';
 
 const fieldLabels: Record<FieldKey, string> = {
-  title: 'Название',
-  industry: 'Отрасль',
-  context: 'Что происходит сейчас',
-  need: 'Что нужно изменить',
-  users: 'Будущие пользователи',
-  dataAvailability: 'Доступность данных',
-  dataSource: 'Источник или пример данных',
-  expectedResult: 'Ожидаемый результат',
-  successMetric: 'Показатель успеха',
-  successTarget: 'Целевое значение',
-  acceptanceCriteria: 'Условие приёмки',
-  constraints: 'Ограничения',
-  noConstraints: 'Известных ограничений нет',
-  contact: 'Канал связи',
-  interactionFormat: 'Формат консультаций',
+  title: 'Title',
+  industry: 'Industry',
+  context: 'What is happening now',
+  need: 'What needs to change',
+  users: 'Future users',
+  dataAvailability: 'Data availability',
+  dataSource: 'Data source or sample',
+  expectedResult: 'Expected result',
+  successMetric: 'Success metric',
+  successTarget: 'Target value',
+  acceptanceCriteria: 'Acceptance condition',
+  constraints: 'Constraints',
+  noConstraints: 'No known constraints',
+  contact: 'Contact channel',
+  interactionFormat: 'Consultation format',
 };
 const fieldInput = (field: FieldKey) => ({
   input:
@@ -51,9 +51,9 @@ const fieldInput = (field: FieldKey) => ({
   options:
     field === 'dataAvailability'
       ? [
-          { value: 'available', label: 'Данные есть' },
-          { value: 'none', label: 'Данных пока нет' },
-          { value: 'unknown', label: 'Пока не знаю' },
+          { value: 'available', label: 'Data is available' },
+          { value: 'none', label: 'No data yet' },
+          { value: 'unknown', label: 'Not sure yet' },
         ]
       : null,
 });
@@ -118,15 +118,15 @@ export class Views {
   }
   proposalView(item: Proposal) {
     const labels = {
-      pending: 'Ожидает решения',
-      selected: 'Предложение выбрано',
-      rejected: 'Предложение отклонено',
+      pending: 'Awaiting decision',
+      selected: 'Proposal selected',
+      rejected: 'Proposal rejected',
     };
     const hints = {
-      pending: 'Бизнес ещё не принял решение. Предложение сохранено.',
-      selected: 'Предложение выбрано бизнесом. Текущее состояние работы указано отдельно.',
+      pending: 'The business has not decided yet. The proposal is saved.',
+      selected: 'The business selected this proposal. The current work status is shown separately.',
       rejected:
-        'Предложение отклонено. Команда может предложить другой подход; решения по остальным предложениям сохраняются.',
+        'The proposal was rejected. The team can propose another approach; decisions on other proposals are kept.',
     };
     return { ...item, statusLabel: labels[item.status], statusHint: hints[item.status] };
   }
@@ -146,27 +146,26 @@ export class Views {
               ? 'rejected'
               : 'not_applied';
     const labels = {
-      not_applied: 'Вы ещё не откликались',
-      pending: 'Ожидает решения',
-      rejected: 'Предложения отклонены',
-      selected: 'Ваша команда выбрана',
-      draft: 'Подготовка результата',
-      in_review: 'Результат на проверке',
-      changes_requested: 'Нужна доработка',
-      approved: 'Этап подтверждён',
-      paused: 'Работа приостановлена',
+      not_applied: 'You have not applied yet',
+      pending: 'Awaiting decision',
+      rejected: 'Proposals rejected',
+      selected: 'Your team is selected',
+      draft: 'Preparing the result',
+      in_review: 'Result under review',
+      changes_requested: 'Changes requested',
+      approved: 'Milestone approved',
+      paused: 'Work paused',
     };
     const hints = {
-      not_applied: 'Опишите идею и план. Низкая готовность карточки не мешает отклику.',
-      pending: 'Бизнес изучает предложение. Пока можно посмотреть другие задачи.',
-      rejected: 'Посмотрите комментарий бизнеса. Можно отправить новый подход или найти другую задачу.',
-      selected: 'Создайте этап и укажите, какой результат бизнес сможет проверить.',
-      draft: 'Откройте этап, приложите результат и отправьте его бизнесу.',
-      in_review: 'Результат сохранён и ожидает решения бизнеса. Очки появятся после подтверждения.',
-      changes_requested: 'Откройте замечания бизнеса, доработайте результат и отправьте его снова.',
-      approved: 'Результат принят, 10 очков начислены. Можно выбрать следующую задачу.',
-      paused:
-        'Выбор команды отменён. Материалы сохранены; продолжить можно после повторного выбора бизнесом.',
+      not_applied: 'Describe your idea and plan. A low card readiness does not block proposals.',
+      pending: 'The business is reviewing the proposal. Meanwhile you can browse other tasks.',
+      rejected: 'Read the business comment. You can send a new approach or find another task.',
+      selected: 'Create a milestone and state which result the business will be able to check.',
+      draft: 'Open the milestone, attach the result and send it to the business.',
+      in_review: 'The result is saved and awaiting the business decision. Points appear after approval.',
+      changes_requested: 'Open the business feedback, rework the result and send it again.',
+      approved: 'Result accepted, 10 points awarded. You can pick the next task.',
+      paused: 'Team selection was cancelled. Materials are saved; you can continue if the business selects you again.',
     };
     const nextAction = {
       id: milestone
@@ -178,13 +177,13 @@ export class Views {
             : 'propose',
       label: milestone
         ? status === 'changes_requested'
-          ? 'Посмотреть замечания'
-          : 'Открыть этап'
+          ? 'View feedback'
+          : 'Open milestone'
         : selected
-          ? 'Создать этап'
+          ? 'Create milestone'
           : status === 'pending'
-            ? 'Посмотреть мои отклики'
-            : 'Отправить предложение',
+            ? 'View my proposals'
+            : 'Send proposal',
       hint: hints[status],
       taskId,
       milestoneId: milestone?.id ?? null,
@@ -217,8 +216,8 @@ export class Views {
       ).length,
       publishedAt: task.publishedAt,
       actions: [
-        action('open', 'Открыть карточку'),
-        action('propose', 'Отправить предложение', actor?.role === 'team', 'Войдите под командой'),
+        action('open', 'Open card'),
+        action('propose', 'Send proposal', actor?.role === 'team', 'Sign in as a team'),
       ],
     };
   }
@@ -254,7 +253,7 @@ export class Views {
     ];
     return {
       screen: 'catalog' as const,
-      title: 'Площадь задач',
+      title: 'Task Square',
       filters: {
         ...query,
         industries: [...new Set(published.map((t) => t.confirmedFields!.industry))].sort(),
@@ -284,10 +283,10 @@ export class Views {
       emptyState: filtered.length
         ? null
         : {
-            title: 'Задач пока нет',
+            title: 'No tasks yet',
             message: published.length
-              ? 'Попробуйте сбросить фильтры'
-              : 'Опубликованные задачи появятся здесь',
+              ? 'Try resetting the filters'
+              : 'Published tasks will appear here',
             action: 'reset_filters',
           },
     };
@@ -323,7 +322,7 @@ export class Views {
             : approvedStages
               ? ('approved' as const)
               : ('working' as const),
-          statusLabel: pendingStages ? 'На проверке' : approvedStages ? 'Этап подтверждён' : 'В работе',
+          statusLabel: pendingStages ? 'Under review' : approvedStages ? 'Milestone approved' : 'In progress',
         };
       }),
       actions: [
@@ -333,12 +332,12 @@ export class Views {
         action(
           'propose',
           participation && participation.status !== 'not_applied'
-            ? 'Предложить другой подход'
-            : 'Отправить предложение',
+            ? 'Propose another approach'
+            : 'Send proposal',
           actor?.role === 'team',
-          'Войдите под командой',
+          'Sign in as a team',
         ),
-        ...(owner ? [action('edit', 'Улучшить карточку'), action('review', 'Сравнить отклики')] : []),
+        ...(owner ? [action('edit', 'Improve card'), action('review', 'Compare proposals')] : []),
       ],
     };
   }
@@ -364,7 +363,7 @@ export class Views {
                 : ('empty' as const),
           canApply: !task.analysis.resolved && task.analysis.applicableVersion === task.version,
           notice:
-            'Проверьте цитаты и выберите, что добавить. Уже заполненные поля сохранятся. Можно отклонить все предложения.',
+            'Check the quotes and choose what to add. Fields you already filled in are kept. You can dismiss all suggestions.',
         }
       : null;
     const quality = checkQuality(task.draftFields);
@@ -384,7 +383,7 @@ export class Views {
       preview: {
         fields: task.draftFields,
         score: forecast,
-        notice: 'Предпросмотр: изменения станут официальными после подтверждения',
+        notice: 'Preview: changes become official after confirmation',
       },
       fieldGuide: (Object.keys(fieldLabels) as FieldKey[]).map((field) => ({
         field,
@@ -397,67 +396,67 @@ export class Views {
       quality,
       aiRuns: this.store.aiRuns(id),
       steps: [
-        { id: 'describe', label: 'Описание', complete: !!task.rawDescription },
+        { id: 'describe', label: 'Description', complete: !!task.rawDescription },
         {
           id: 'clarify',
-          label: 'Уточнения',
+          label: 'Clarification',
           complete: !!clarification && (clarification.reviewed || clarification.progress.remaining === 0),
         },
-        { id: 'confirm', label: 'Подтверждение', complete: !!task.confirmedFields && !hasUnconfirmedChanges },
-        { id: 'publish', label: 'Публикация', complete: task.publicationStatus === 'published' },
+        { id: 'confirm', label: 'Confirmation', complete: !!task.confirmedFields && !hasUnconfirmedChanges },
+        { id: 'publish', label: 'Publication', complete: task.publicationStatus === 'published' },
       ],
       nextAction:
         !analysis && needsInitialClarification
           ? {
               id: 'analyze',
-              label: 'Разобрать описание',
-              hint: 'Найдём уже указанные сведения, чтобы вам не вводить их повторно',
+              label: 'Analyze description',
+              hint: 'We will find details you already gave so you do not have to enter them again',
             }
           : analysis?.status === 'ready'
             ? {
                 id: 'review_suggestions',
-                label: 'Проверить предложения',
-                hint: 'Выберите подходящие цитаты или продолжите без них',
+                label: 'Review suggestions',
+                hint: 'Pick the quotes that fit or continue without them',
               }
             : needsInitialClarification
               ? {
                   id: 'clarify',
-                  label: 'Уточнить задачу с ИИ',
-                  hint: 'Ответьте на вопросы, чтобы командам было проще начать работу',
+                  label: 'Clarify the task with AI',
+                  hint: 'Answer the questions so teams can get started more easily',
                 }
               : continueQuestions
                 ? {
                     id: 'answer_question',
-                    label: 'Продолжить уточнение',
-                    hint: `Осталось вопросов: ${clarification!.progress.remaining}. Ответы сохранены, можно вернуться позже.`,
+                    label: 'Continue clarifying',
+                    hint: `Questions left: ${clarification!.progress.remaining}. Answers are saved; you can come back later.`,
                   }
                 : !task.confirmedFields || hasUnconfirmedChanges || (clarification && !clarification.reviewed)
                   ? {
                       id: 'confirm',
-                      label: 'Подтвердить сведения',
-                      hint: forecast.nextImprovement?.message ?? 'Проверьте сведения перед подтверждением',
+                      label: 'Confirm details',
+                      hint: forecast.nextImprovement?.message ?? 'Review the details before confirming',
                     }
                   : task.publicationStatus === 'draft'
                     ? {
                         id: 'publish',
-                        label: 'Опубликовать задачу',
-                        hint: 'Карточка станет доступна всем командам',
+                        label: 'Publish task',
+                        hint: 'The card will become visible to all teams',
                       }
                     : {
                         id: 'review',
-                        label: 'Посмотреть отклики',
-                        hint: 'Выберите одну, несколько или ни одной команды',
+                        label: 'View proposals',
+                        hint: 'Select one, several or no teams',
                       },
       actions: [
-        action('save_draft', 'Сохранить черновик'),
-        action('analyze', 'Разобрать описание'),
-        action('clarify', 'Помочь уточнить'),
-        action('confirm', 'Подтвердить сведения', titleValid, 'Укажите название и отрасль'),
+        action('save_draft', 'Save draft'),
+        action('analyze', 'Analyze description'),
+        action('clarify', 'Help me clarify'),
+        action('confirm', 'Confirm details', titleValid, 'Enter a title and industry'),
         action(
           'publish',
-          'Опубликовать',
+          'Publish',
           !!task.confirmedFields && !hasUnconfirmedChanges && task.publicationStatus === 'draft',
-          'Подтвердите изменения; опубликованная карточка уже видна всем',
+          'Confirm the changes; a published card is already visible to everyone',
         ),
       ],
     };
@@ -468,27 +467,27 @@ export class Views {
       screen: 'review-desk' as const,
       task: { id, title: (task.confirmedFields ?? task.draftFields).title, version: task.version },
       selectionPolicy:
-        'Можно выбрать несколько команд или никого. Остальные команды сохраняют право на отклик.',
+        'You can select several teams or none. Other teams can still send proposals.',
       proposals: this.proposals(id).map((p) => ({
         ...this.proposalView(p),
         team: this.team(p.teamId),
         actions: [
-          action('select', 'Выбрать команду', p.status !== 'selected', 'Команда уже выбрана'),
+          action('select', 'Select team', p.status !== 'selected', 'Team already selected'),
           action(
             'reject',
-            p.status === 'selected' ? 'Отменить выбор предложения' : 'Отклонить',
+            p.status === 'selected' ? 'Cancel proposal selection' : 'Reject',
             p.status !== 'rejected' && mayRejectProposal(this.store, p),
-            'Отклик уже отклонён или у выбранной команды подтверждён этап',
+            'The proposal is already rejected or the selected team has an approved milestone',
           ),
         ],
       })),
       milestones: this.milestones(id).map((m) => this.milestoneView(m, actor)),
       comparison: {
         columns: [
-          { key: 'idea', label: 'Идея' },
-          { key: 'plan', label: 'План' },
-          { key: 'estimatedTime', label: 'Срок' },
-          { key: 'prototypeUrl', label: 'Прототип' },
+          { key: 'idea', label: 'Idea' },
+          { key: 'plan', label: 'Plan' },
+          { key: 'estimatedTime', label: 'Timeline' },
+          { key: 'prototypeUrl', label: 'Prototype' },
         ],
       },
     };
@@ -500,26 +499,26 @@ export class Views {
       owner || actor.teamId === item.teamId,
       403,
       'FORBIDDEN',
-      'Этап доступен только команде и владельцу задачи',
+      'The milestone is available only to its team and the task owner',
     );
     const selected = this.store.isSelected(item.taskId, item.teamId);
     const statusLabels = {
-      draft: 'Подготовка результата',
-      in_review: 'На проверке',
-      changes_requested: 'Нужна доработка',
-      approved: 'Этап подтверждён',
+      draft: 'Preparing the result',
+      in_review: 'Under review',
+      changes_requested: 'Changes requested',
+      approved: 'Milestone approved',
     };
     const statusHints = {
       draft: owner
-        ? 'Команда готовит результат. После отправки вы сможете проверить его и принять решение.'
-        : 'Добавьте ссылку на Git/PR и опишите выполненную работу.',
+        ? 'The team is preparing the result. Once submitted, you can review it and decide.'
+        : 'Add a Git/PR link and describe the work done.',
       in_review: owner
-        ? 'Проверьте результат по критериям этапа и примите решение.'
-        : 'Бизнес проверяет результат. Очки появятся после подтверждения.',
+        ? 'Check the result against the milestone criteria and make a decision.'
+        : 'The business is reviewing the result. Points appear after approval.',
       changes_requested: owner
-        ? 'Команда получила замечания. Дождитесь повторной отправки.'
-        : 'Учтите замечания бизнеса и отправьте обновлённый результат.',
-      approved: 'Результат принят. Команде начислено 10 очков.',
+        ? 'The team received feedback. Wait for a resubmission.'
+        : 'Address the business feedback and submit an updated result.',
+      approved: 'Result accepted. The team earned 10 points.',
     };
     return {
       ...item,
@@ -537,13 +536,13 @@ export class Views {
           ? {
               kind: 'manual' as const,
               message: owner
-                ? 'Автоматическая проверка неполная. Материалы сохранены: проверьте ссылку и критерии вручную. Недоступность AI или Git сама по себе не означает плохой результат.'
-                : 'Материалы сохранены. Автоматическая проверка неполная, поэтому окончательное решение принимает бизнес вручную.',
+                ? 'Automatic review is incomplete. Materials are saved: check the link and criteria manually. AI or Git being unavailable does not by itself mean a poor result.'
+                : 'Materials are saved. Automatic review is incomplete, so the business makes the final decision manually.',
             }
           : null,
-      statusLabel: selected ? statusLabels[item.status] : 'Работа приостановлена',
+      statusLabel: selected ? statusLabels[item.status] : 'Work paused',
       statusHint: !selected
-        ? 'Выбор команды отменён. Продолжить можно после повторного выбора бизнесом.'
+        ? 'Team selection was cancelled. You can continue if the business selects you again.'
         : statusHints[item.status],
       teamName: this.team(item.teamId).name,
       confirmedPoints: this.store.points(item.teamId),
@@ -551,30 +550,30 @@ export class Views {
         ? [
             action(
               'approve',
-              'Подтвердить результат',
+              'Approve result',
               selected && item.status === 'in_review',
-              'Нужен отправленный результат выбранной команды',
+              'Requires a submitted result from a selected team',
             ),
             action(
               'return',
-              'Вернуть на доработку',
+              'Return for rework',
               selected && item.status === 'in_review',
-              'Этап не ожидает проверки',
+              'The milestone is not awaiting review',
             ),
           ]
         : [
             action(
               'submit_evidence',
-              'Отправить на проверку',
+              'Submit for review',
               selected && (item.status === 'draft' || item.status === 'changes_requested'),
-              'Нужен выбор бизнеса; результат на проверке или уже подтверждён',
+              'Requires business selection; the result is under review or already approved',
             ),
           ],
     };
   }
   milestone(id: string, actor: Actor) {
     const item = this.store.get<Milestone>('milestones', id);
-    invariant(item, 404, 'MILESTONE_NOT_FOUND', 'Этап не найден');
+    invariant(item, 404, 'MILESTONE_NOT_FOUND', 'Milestone not found');
     return { screen: 'milestone' as const, milestone: this.milestoneView(item, actor) };
   }
   dashboard(actor: Actor) {
@@ -604,30 +603,30 @@ export class Views {
             nextAction: pendingReviews
               ? {
                   id: 'review',
-                  label: 'Проверить результат',
-                  hint: `Этапов на проверке: ${pendingReviews}`,
+                  label: 'Review result',
+                  hint: `Milestones under review: ${pendingReviews}`,
                   taskId: t.id,
                 }
               : pendingProposals
                 ? {
                     id: 'review',
-                    label: 'Сравнить отклики',
-                    hint: `Новых предложений: ${pendingProposals}`,
+                    label: 'Compare proposals',
+                    hint: `New proposals: ${pendingProposals}`,
                     taskId: t.id,
                   }
                 : {
                     id: 'edit',
                     label:
                       t.publicationStatus === 'draft' || hasUnconfirmedChanges
-                        ? 'Продолжить карточку'
-                        : 'Открыть карточку',
-                    hint: 'Сведения и прогресс сохранены',
+                        ? 'Continue card'
+                        : 'Open card',
+                    hint: 'Details and progress are saved',
                     taskId: t.id,
                   },
-            actions: [action('edit', 'Открыть конструктор'), action('review', 'Сравнить отклики')],
+            actions: [action('edit', 'Open builder'), action('review', 'Compare proposals')],
           };
         }),
-        actions: [action('start_task', 'Описать новую задачу')],
+        actions: [action('start_task', 'Describe a new task')],
       };
     }
     const proposals = this.store.all<Proposal>('proposals').filter((p) => p.teamId === actor.teamId);
@@ -649,7 +648,7 @@ export class Views {
           nextAction: this.participation(id, actor)!.nextAction,
         }),
       ),
-      actions: [action('browse', 'Найти задачу')],
+      actions: [action('browse', 'Find a task')],
     };
   }
   scoreboard() {
@@ -673,7 +672,7 @@ export class Views {
           ? ['dashboard', 'catalog', 'scoreboard']
           : ['catalog', 'dashboard', 'scoreboard'],
       realtime: { path: '/socket.io', event: 'invalidate', refetchOnConnect: true },
-      login: { method: 'code', hint: 'Введите код из локального файла демо-аккаунтов или код своей команды' },
+      login: { method: 'code', hint: 'Enter a code from the local demo accounts file or your team code' },
     };
   }
 }
