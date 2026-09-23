@@ -1,10 +1,10 @@
-// Мировые события. Фоновые (птицы, дрон, фонтан…) — локальные и чисто визуальные, не влияют на баллы и данные.
-// GRAND TRIUMPH приходит только с сервера после подтверждения бизнесом.
+// World events. Ambient ones (birds, drone, fountain…) are local and purely visual; they don't affect scores or data.
+// GRAND TRIUMPH comes only from the server after business confirmation.
 import type { TriumphInfo } from '../../shared/types';
 
 export type AmbientKind = 'birds' | 'npc-group' | 'fountain' | 'vehicle' | 'drone' | 'banners' | 'sparkle';
 export const AMBIENT_LABEL: Record<AmbientKind, string> = {
-  birds: 'птицы над площадью', 'npc-group': 'группа прохожих', fountain: 'фонтан сильнее', vehicle: 'сервисная машина', drone: 'дрон над инновационным кварталом', banners: 'порыв ветра', sparkle: 'огоньки у здания задачи',
+  birds: 'birds over the plaza', 'npc-group': 'a group of passers-by', fountain: 'fountain surges', vehicle: 'service vehicle', drone: 'drone over the innovation district', banners: 'gust of wind', sparkle: 'sparkles at a task building',
 };
 export interface AmbientEvent { id: number; kind: AmbientKind; start: number; duration: number; target?: string }
 export interface TriumphState extends TriumphInfo { start: number; duration: number }
@@ -28,13 +28,13 @@ export class WorldEventManager {
 
   setTasks(ids: string[]) { this.taskIds = ids; }
 
-  /** Каждые 30–90 с одно спокойное событие. */
+  /** One calm event every 30–90 s. */
   startAmbient() {
     const schedule = () => {
       this.timer = setTimeout(() => { this.fireRandom(); schedule(); }, 30000 + Math.random() * 60000);
     };
     this.stop();
-    this.timer = setTimeout(() => { this.fireRandom(); schedule(); }, 9000); // первое — вскоре после входа
+    this.timer = setTimeout(() => { this.fireRandom(); schedule(); }, 9000); // the first one shortly after entering
   }
   stop() { if (this.timer) clearTimeout(this.timer); this.timer = null; }
 
@@ -53,7 +53,7 @@ export class WorldEventManager {
   }
   isActive(kind: AmbientKind) { return this.ambient.some((e) => e.kind === kind); }
 
-  /** Серверное событие. Если триумф уже идёт — следующий ждёт очереди. */
+  /** Server event. If a triumph is already running, the next one waits in the queue. */
   pushTriumph(t: TriumphInfo) {
     if (this.triumph) { this.queue.push(t); return; }
     this.triumph = { ...t, start: performance.now(), duration: this.reduced ? 6000 : TRIUMPH_MS };
@@ -65,7 +65,7 @@ export class WorldEventManager {
       if (next) setTimeout(() => this.pushTriumph(next), 600);
     }, this.triumph.duration);
   }
-  /** Прогресс триумфа 0..1 или -1. */
+  /** Triumph progress 0..1 or -1. */
   triumphProgress(now = performance.now()): number {
     if (!this.triumph) return -1;
     return Math.min(1, (now - this.triumph.start) / this.triumph.duration);
