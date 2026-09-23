@@ -41,10 +41,10 @@ describe('browser client', () => {
     const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => reply(envelope({})));
     const api = createSanaClient({ fetch: fetcher });
     const controller = new AbortController();
-    await api.catalog({ search: 'кафе & еда', page: 2, level: 'ready' }, { signal: controller.signal });
+    await api.catalog({ search: 'cafe & food', page: 2, level: 'ready' }, { signal: controller.signal });
     const url = new URL(fetcher.mock.calls[0]![0] as string, 'https://sana.test');
     expect(url.pathname).toBe('/api/v1/catalog');
-    expect(url.searchParams.get('search')).toBe('кафе & еда');
+    expect(url.searchParams.get('search')).toBe('cafe & food');
     expect(url.searchParams.get('page')).toBe('2');
     expect(url.searchParams.has('industry')).toBe(false);
     expect(fetcher.mock.calls[0]![1]!.signal).toBe(controller.signal);
@@ -58,7 +58,7 @@ describe('browser client', () => {
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
       .mockResolvedValueOnce(reply(envelope({ screen: 'task-workspace' }), 201));
     const api = createSanaClient({ fetch: fetcher });
-    const body = { rawDescription: 'Сократить списания в кафе' };
+    const body = { rawDescription: 'Reduce food write-offs at the cafe' };
     const error = await api.startTask(body).catch((error: unknown) => error);
     expect(error).toBeInstanceOf(ApiError);
     if (!(error instanceof ApiError)) throw new Error('Expected ApiError');
@@ -74,16 +74,16 @@ describe('browser client', () => {
     const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => reply(envelope({}), 201));
     const api = createSanaClient({ fetch: fetcher });
     const body = {
-      idea: 'Прогноз',
-      plan: 'Изучить CSV',
-      estimatedTime: 'Неделя',
+      idea: 'Forecast',
+      plan: 'Study the CSV',
+      estimatedTime: 'One week',
       prototypeUrl: 'https://example.test/demo',
     };
     await api.propose('task-1', body);
     await api.propose('task-1', body);
     await api.createMilestone(
       'task-1',
-      { title: 'Прототип', acceptanceCriteria: 'Импорт CSV' },
+      { title: 'Prototype', acceptanceCriteria: 'CSV import' },
       { idempotencyKey: 'milestone-retry-1' },
     );
     const keys = fetcher.mock.calls.map(([, init]) => new Headers(init!.headers).get('Idempotency-Key'));
@@ -98,8 +98,8 @@ describe('browser client', () => {
         {
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Проверьте поля',
-            fieldErrors: { 'fields.title': ['Слишком длинное название'] },
+            message: 'Check the fields',
+            fieldErrors: { 'fields.title': ['Title is too long'] },
             recovery: 'correct_fields',
           },
           meta: { requestId: 'request-validation', contractVersion: '1.0' },
@@ -109,20 +109,20 @@ describe('browser client', () => {
     );
     const api = createSanaClient({ fetch: fetcher });
     await expect(
-      api.saveDraft('task-1', { expectedVersion: 1, fields: { title: 'Кафе' } }),
+      api.saveDraft('task-1', { expectedVersion: 1, fields: { title: 'Cafe' } }),
     ).rejects.toMatchObject({
       name: 'ApiError',
       status: 422,
       code: 'VALIDATION_ERROR',
-      message: 'Проверьте поля',
+      message: 'Check the fields',
       requestId: 'request-validation',
-      fieldErrors: { 'fields.title': ['Слишком длинное название'] },
+      fieldErrors: { 'fields.title': ['Title is too long'] },
       recovery: 'correct_fields',
     });
     fetcher.mockResolvedValueOnce(
       reply(
         {
-          error: { code: 'STALE_VERSION', message: 'Обновите экран', fieldErrors: {}, recovery: 'refetch' },
+          error: { code: 'STALE_VERSION', message: 'Refresh the screen', fieldErrors: {}, recovery: 'refetch' },
           meta: { requestId: 'request-stale', contractVersion: '1.0' },
         },
         409,
@@ -158,7 +158,7 @@ describe('browser client', () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(response);
     const api = createSanaClient({ fetch: fetcher });
     await expect(
-      api.startTask({ rawDescription: 'Кафе' }, { idempotencyKey: 'cancelled-creation-123' }),
+      api.startTask({ rawDescription: 'Cafe' }, { idempotencyKey: 'cancelled-creation-123' }),
     ).rejects.toMatchObject({
       status: 0,
       code: 'REQUEST_ABORTED',
@@ -183,7 +183,7 @@ describe('browser client', () => {
       { method: 'GET', path: '/bootstrap', invoke: () => api.bootstrap() },
       { method: 'POST', path: '/session/start', invoke: () => api.startSession({ code: 'demo-code' }) },
       { method: 'POST', path: '/session/end', invoke: () => api.endSession() },
-      { method: 'POST', path: '/teams/start', invoke: () => api.createTeam({ name: 'Команда' }) },
+      { method: 'POST', path: '/teams/start', invoke: () => api.createTeam({ name: 'Team' }) },
       { method: 'GET', path: '/catalog', invoke: () => api.catalog() },
       { method: 'GET', path: '/dashboard', invoke: () => api.dashboard() },
       { method: 'GET', path: '/scoreboard', invoke: () => api.scoreboard() },
@@ -192,7 +192,7 @@ describe('browser client', () => {
       {
         method: 'POST',
         path: '/tasks/start',
-        invoke: () => api.startTask({ rawDescription: 'Задача кафе' }),
+        invoke: () => api.startTask({ rawDescription: 'Cafe task' }),
       },
       { method: 'GET', path: '/tasks/task-1', invoke: () => api.task('task-1') },
       { method: 'GET', path: '/tasks/task-1/workspace', invoke: () => api.workspace('task-1') },
@@ -200,7 +200,7 @@ describe('browser client', () => {
       {
         method: 'POST',
         path: '/tasks/task-1/draft',
-        invoke: () => api.saveDraft('task-1', { ...version, fields: { title: 'Кафе' } }),
+        invoke: () => api.saveDraft('task-1', { ...version, fields: { title: 'Cafe' } }),
       },
       {
         method: 'POST',
@@ -227,9 +227,9 @@ describe('browser client', () => {
         path: '/tasks/task-1/proposals',
         invoke: () =>
           api.propose('task-1', {
-            idea: 'Прогноз',
-            plan: 'Пилот',
-            estimatedTime: 'Неделя',
+            idea: 'Forecast',
+            plan: 'Pilot',
+            estimatedTime: 'One week',
             prototypeUrl: 'https://example.test',
           }),
       },
@@ -241,7 +241,7 @@ describe('browser client', () => {
       {
         method: 'POST',
         path: '/tasks/task-1/milestones',
-        invoke: () => api.createMilestone('task-1', { title: 'Пилот', acceptanceCriteria: 'CSV' }),
+        invoke: () => api.createMilestone('task-1', { title: 'Pilot', acceptanceCriteria: 'CSV' }),
       },
       { method: 'GET', path: '/milestones/milestone-1', invoke: () => api.milestone('milestone-1') },
       {
@@ -251,14 +251,14 @@ describe('browser client', () => {
           api.submitEvidence('milestone-1', {
             ...version,
             evidenceUrl: 'https://github.com/openai/openai-node',
-            description: 'Прототип',
+            description: 'Prototype',
           }),
       },
       {
         method: 'POST',
         path: '/milestones/milestone-1/decision',
         invoke: () =>
-          api.decideMilestone('milestone-1', { ...version, decision: 'return', feedback: 'Добавьте CSV' }),
+          api.decideMilestone('milestone-1', { ...version, decision: 'return', feedback: 'Add the CSV' }),
       },
     ];
     for (const call of calls) {
@@ -284,7 +284,7 @@ describe('browser client', () => {
       rateLimit: false,
     });
     runtime.auth.addUser(
-      { id: 'owner', role: 'business', displayName: 'Кафе', teamId: null },
+      { id: 'owner', role: 'business', displayName: 'Cafe', teamId: null },
       'owner-contract-code',
     );
     try {
@@ -299,7 +299,7 @@ describe('browser client', () => {
       await expect(api.dashboard()).rejects.toMatchObject({ status: 401, code: 'LOGIN_REQUIRED' });
       token = (await api.startSession({ code: 'owner-contract-code' })).data.token;
       expect((await api.dashboard()).data.screen).toBe('business-dashboard');
-      const input = { rawDescription: 'Снизить списания кафе', title: 'Кафе', industry: 'Общепит' };
+      const input = { rawDescription: 'Reduce cafe write-offs', title: 'Cafe', industry: 'Food service' };
       const started = await api.startTask(input, { idempotencyKey: 'contract-retry-123' });
       const replay = await api.startTask(input, { idempotencyKey: 'contract-retry-123' });
       expect(replay.data.task.id).toBe(started.data.task.id);
@@ -310,9 +310,9 @@ describe('browser client', () => {
       });
       const saved = await api.saveDraft(started.data.task.id, {
         expectedVersion: started.data.task.version,
-        fields: { need: 'Прогнозировать закупки' },
+        fields: { need: 'Forecast purchases' },
       });
-      expect(saved.data.draft.fields.need).toBe('Прогнозировать закупки');
+      expect(saved.data.draft.fields.need).toBe('Forecast purchases');
       await expect(
         api.confirmTask(started.data.task.id, { expectedVersion: started.data.task.version }),
       ).rejects.toMatchObject({ status: 409, code: 'STALE_VERSION', recovery: 'refetch' });
