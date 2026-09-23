@@ -1,5 +1,5 @@
-// Свой персонаж: WASD/стрелки (нормализованная диагональ, разгон/торможение, плавный поворот),
-// Shift — чуть быстрее, E — открыть ближайшую задачу, 1–4 — эмоции. Физики нет: простые коллайдеры и граница.
+// Own character: WASD/arrows (normalized diagonal, acceleration/braking, smooth turning),
+// Shift — a bit faster, E — open the nearest task, 1–4 — emotes. No physics: simple colliders and a boundary.
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -55,7 +55,7 @@ export function LocalPlayer({ refs, start, colliders, limit, getYaw, benches, en
 
   useEffect(() => {
     refs.pos.current.set(start[0], 0, start[1]);
-    refs.rot.current = Math.atan2(-start[0], -start[1]); // лицом к центру
+    refs.rot.current = Math.atan2(-start[0], -start[1]); // facing the center
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -87,11 +87,11 @@ export function LocalPlayer({ refs, start, colliders, limit, getYaw, benches, en
     const k = keys.current;
     const ix = enabledRef.current ? Number(k.r) - Number(k.l) : 0;
     const iz = enabledRef.current ? Number(k.f) - Number(k.b) : 0;
-    // направление относительно камеры; диагональ нормализуется
+    // direction relative to the camera; the diagonal is normalized
     const yaw = getYaw();
     let dx = 0, dz = 0;
     if (ix || iz) {
-      const fx = -Math.sin(yaw), fz = -Math.cos(yaw); // «вперёд» от камеры
+      const fx = -Math.sin(yaw), fz = -Math.cos(yaw); // "forward" from the camera
       const rx = Math.cos(yaw), rz = -Math.sin(yaw);
       dx = fx * iz + rx * ix; dz = fz * iz + rz * ix;
       const len = Math.hypot(dx, dz); dx /= len; dz /= len;
@@ -99,7 +99,7 @@ export function LocalPlayer({ refs, start, colliders, limit, getYaw, benches, en
     const speed = k.run ? RUN_SPEED : WALK_SPEED;
     const tx = dx * speed, tz = dz * speed;
     const v = vel.current;
-    const accel = ix || iz ? 16 : 22; // разгон / торможение, м/с²
+    const accel = ix || iz ? 16 : 22; // acceleration / braking, m/s²
     const ddx = tx - v.x, ddz = tz - v.y;
     const dl = Math.hypot(ddx, ddz);
     const step = accel * dt;
@@ -107,7 +107,7 @@ export function LocalPlayer({ refs, start, colliders, limit, getYaw, benches, en
 
     const p = refs.pos.current;
     const [nx, nz] = resolveCollisions(p.x + v.x * dt, p.z + v.y * dt, colliders, 0.45, limit);
-    // реальная скорость после столкновений (для анимации)
+    // actual speed after collisions (for animation)
     const realSpeed = Math.hypot(nx - p.x, nz - p.z) / Math.max(dt, 1e-4);
     p.set(nx, 0, nz);
     if (Math.hypot(v.x, v.y) > 0.3) {
@@ -121,7 +121,7 @@ export function LocalPlayer({ refs, start, colliders, limit, getYaw, benches, en
     g.position.copy(p);
     g.rotation.y = refs.rot.current;
 
-    // анимация: движение > эмоция > случайное idle-действие
+    // animation: movement > emote > random idle action
     const now = performance.now();
     if (moving) { idle.current.moving(); emote.current = null; clipRef.current = refs.movement.current === 'run' ? 'sprint' : 'walk'; return; }
     if (emote.current && now < emote.current.until) { clipRef.current = emote.current.clip; idle.current.moving(); return; }
