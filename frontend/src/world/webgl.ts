@@ -1,6 +1,6 @@
 let cached: boolean | null = null;
 
-/** Есть ли WebGL. При отсутствии приложение автоматически показывает 2D-каталог (ТЗ 5.3). */
+/** Whether WebGL is available. Without it the app automatically shows the 2D catalog (spec 5.3). */
 export function hasWebGL(): boolean {
   if (cached !== null) return cached;
   try {
