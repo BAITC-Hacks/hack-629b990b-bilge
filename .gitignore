@@ -11,3 +11,34 @@ backend/data/
 backend/demo-accounts.local.json
 *.log
 .worktrees/
+
+# Local Hunyuan avatar sidecar — code only, never weights or uploads
+backend/local-avatar-service/.venv/
+backend/local-avatar-service/venv/
+backend/local-avatar-service/.conda/
+backend/local-avatar-service/vendor/
+backend/local-avatar-service/__pycache__/
+backend/local-avatar-service/**/__pycache__/
+backend/local-avatar-service/**/*.pyc
+
+backend/local-avatar-service/tmp/*
+!backend/local-avatar-service/tmp/.gitkeep
+
+backend/local-avatar-service/generated/*
+!backend/local-avatar-service/generated/.gitkeep
+
+backend/local-avatar-service/models/
+backend/local-avatar-service/checkpoints/
+backend/local-avatar-service/.cache/
+
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.glb
+
+# Local test photos must never be committed
+beebo.jpeg
+handsome guy.png
+mamyr_altaibek.jpg
