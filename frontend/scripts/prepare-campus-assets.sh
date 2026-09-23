@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Копирует выбранные современные CC0-ассеты для кампуса из assets-raw/ в public/models/.
-# Имена файлов взяты из описи (modern-list.txt, mini-inventory.txt) — ничего не выдумывается.
+# Copies the selected modern CC0 campus assets from assets-raw/ to public/models/.
+# File names come from the inventories (modern-list.txt, mini-inventory.txt) — nothing is made up.
 set -eu
 cd "$(dirname "$0")/.."
 RAW=assets-raw
 OUT=public/models
 
-# Kenney City Kit (Commercial): здания среднего размера, небоскрёбы, навесы, зонтики
+# Kenney City Kit (Commercial): mid-size buildings, skyscrapers, awnings, parasols
 CITY_SRC="$RAW/kenney-city-kit-commercial/Models/GLB format"
 mkdir -p "$OUT/city/Textures"
 for n in building-a building-b building-c building-d building-e building-f building-g building-h building-i building-j building-k building-l building-m building-n \
@@ -18,7 +18,7 @@ for n in building-a building-b building-c building-d building-e building-f build
 done
 cp "$CITY_SRC/Textures/"*.png "$OUT/city/Textures/"
 
-# Kenney Car Kit: машины, фургоны, конусы, коробки
+# Kenney Car Kit: cars, vans, cones, boxes
 CAR_SRC="$RAW/kenney-car-kit/Models/GLB format"
 mkdir -p "$OUT/car/Textures"
 for n in sedan taxi van suv delivery hatchback-sports police ambulance garbage-truck truck cone box; do
@@ -26,7 +26,7 @@ for n in sedan taxi van suv delivery hatchback-sports police ambulance garbage-t
 done
 cp "$CAR_SRC/Textures/"*.png "$OUT/car/Textures/"
 
-# KayKit City Builder Bits: скамейки, фонари, светофоры, кусты, гидранты, мусорный бак
+# KayKit City Builder Bits: benches, streetlights, traffic lights, bushes, hydrants, dumpster
 KK_SRC="$RAW/kaykit-city/addons/kaykit_city_builder_bits/Assets/gltf"
 mkdir -p "$OUT/kaykit"
 for n in bench bush streetlight trafficlight_A trafficlight_B trafficlight_C firehydrant dumpster watertower; do
@@ -34,7 +34,7 @@ for n in bench bush streetlight trafficlight_A trafficlight_B trafficlight_C fir
 done
 cp "$KK_SRC/citybits_texture.png" "$OUT/kaykit/"
 
-# Лицензии
+# Licenses
 if ! grep -q "public/models/kaykit" "$OUT/LICENSES.txt" 2>/dev/null; then
   {
     echo
