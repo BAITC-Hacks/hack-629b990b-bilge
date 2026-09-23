@@ -3,10 +3,10 @@ import type { Actor, Milestone, Task, Team } from './contracts.js';
 import type { Store } from './db.js';
 
 /**
- * Присутствие игроков в 3D-мире поверх общего Socket.IO сервера.
- * Команду, роль и цвет определяет сессия (socket.data.actor). В этом BFF у команды один общий
- * код и один пользователь, поэтому игрок = подключение, а имя участник указывает сам (только для
- * отображения). Движение, эмоции и присутствие не влияют на баллы и бизнес-данные.
+ * Player presence in the 3D world on top of the shared Socket.IO server.
+ * Team, role and color come from the session (socket.data.actor). In this BFF a team has one shared
+ * code and one user, so a player = a connection, and the participant sets their own name (display
+ * only). Movement, emotes and presence never affect scores or business data.
  */
 export const WORLD_HALF = 88;
 export const NET_HZ = 12;
@@ -57,7 +57,7 @@ function hash32(s: string) {
   }
   return h >>> 0;
 }
-/** Имя для таблички: только печатные символы, без разметки, до 24 символов. */
+/** Name tag: printable characters only, no markup, up to 24 characters. */
 export function cleanName(value: unknown): string {
   if (typeof value !== 'string') return '';
   return value
@@ -90,7 +90,7 @@ export class WorldPresence {
     const actor = socket.data.actor as Actor | null;
     const id = `p-${socket.id}`;
     if (!actor)
-      return { userId: id, displayName: name || 'Гость', role: 'guest' as const, teamId: null, teamName: null, teamColor: '#9aa3b2', demo };
+      return { userId: id, displayName: name || 'Guest', role: 'guest' as const, teamId: null, teamName: null, teamColor: '#9aa3b2', demo };
     const team = actor.teamId ? this.store.get<Team>('teams', actor.teamId) : undefined;
     return {
       userId: id,
@@ -144,7 +144,7 @@ export class WorldPresence {
       const [ox, , oz] = e.presence.position;
       const d = Math.hypot(nx - ox, nz - oz);
       const maxD = RUN_SPEED * 1.6 * Math.max(0.05, (now - e.lastMoveAt) / 1000) + 1.5;
-      const k = d > maxD ? maxD / d : 1; // мягкое ограничение скорости
+      const k = d > maxD ? maxD / d : 1; // soft speed limit
       e.presence.position = [ox + (nx - ox) * k, 0, oz + (nz - oz) * k];
       e.presence.rotation = msg.r;
       const m: MovementState = msg.m === 'walk' || msg.m === 'run' ? msg.m : 'idle';
@@ -203,7 +203,7 @@ export class WorldPresence {
     if (batch.length) this.io.to('world').emit('world.player.state', batch);
   }
 
-  /** GRAND TRIUMPH: вызывается сервером только после первого подтверждения этапа бизнесом. */
+  /** GRAND TRIUMPH: called by the server only after the business first approves a milestone. */
   triumph(milestone: Milestone) {
     const team = this.store.get<Team>('teams', milestone.teamId);
     const task = this.store.get<Task>('tasks', milestone.taskId);
@@ -220,7 +220,7 @@ export class WorldPresence {
   }
 }
 
-/** Публичные данные мира: команды (для баз) и лента подтверждённых результатов (Hall of Achievements). */
+/** Public world data: teams (for bases) and a feed of approved results (Hall of Achievements). */
 export function worldView(store: Store) {
   const teams = store.all<Team>('teams').map((t) => ({
     id: t.id,
