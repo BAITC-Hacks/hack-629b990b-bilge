@@ -1,11 +1,12 @@
 import type { BreakdownItem, FieldKey, Level, Score, TaskFields } from '../contracts.js';
 
 export const levelLabels: Record<Level, string> = {
-  draft: 'Черновик',
-  working: 'Рабочая',
-  ready: 'Готовая',
-  priority: 'Приоритетная',
+  draft: 'Draft',
+  working: 'Working',
+  ready: 'Ready',
+  priority: 'Priority',
 };
+// Placeholder answers are matched in both Russian and English, since users may type either language.
 const meaningfulText = (value: string, minimumLength: number): boolean => {
   const clean = value
     .trim()
@@ -14,7 +15,7 @@ const meaningfulText = (value: string, minimumLength: number): boolean => {
   return (
     clean.length >= minimumLength &&
     /[\p{L}\p{N}]/u.test(clean) &&
-    !/^((?:пока )?не знаю|потом уточню|уточню|нет|не указано|todo|tbd|test|тест|unknown|n\/a|placeholder|пока нет)$/iu.test(
+    !/^((?:пока )?не знаю|потом уточню|уточню|нет|не указано|todo|tbd|test|тест|unknown|n\/a|placeholder|пока нет|(?:i )?(?:don'?t|do not) know(?: yet)?|not sure|later|will clarify later|to be clarified|no|none|not specified|not yet|none yet)$/iu.test(
       clean,
     )
   );
@@ -48,54 +49,54 @@ export function calculateScore(fields: TaskFields): Score {
   const breakdown = [
     category(
       'context',
-      'Контекст и потребность',
+      'Context and need',
       [
         [has('context'), 10, 'context'],
         [has('need'), 10, 'need'],
       ],
-      'Опишите текущую ситуацию и нужное изменение',
+      'Describe the current situation and the change you need',
     ),
     category(
       'data',
-      'Данные и материалы',
+      'Data and materials',
       [
         [fields.dataAvailability !== 'unknown', 10, 'dataAvailability'],
         [fields.dataAvailability === 'available' && has('dataSource'), 10, 'dataSource'],
       ],
-      'Укажите доступность данных и реальный источник, если он есть',
+      'State whether data is available and the real source, if any',
     ),
     category(
       'result',
-      'Ожидаемый результат',
+      'Expected result',
       [[has('expectedResult'), 15, 'expectedResult']],
-      'Опишите, что команда должна показать в конце',
+      'Describe what the team should show at the end',
     ),
     category(
       'success',
-      'Критерии успеха',
+      'Success criteria',
       [[criterion, 15, 'acceptanceCriteria']],
-      'Укажите показатель с целью или проверяемое условие приёмки',
+      'Give a metric with a target or a testable acceptance condition',
     ),
     category(
       'constraints',
-      'Ограничения',
+      'Constraints',
       [[has('constraints') || fields.noConstraints, 10, 'constraints']],
-      'Опишите ограничения или подтвердите отсутствие известных ограничений',
+      'Describe the constraints or confirm there are no known constraints',
     ),
     category(
       'users',
-      'Пользователи',
+      'Users',
       [[has('users'), 10, 'users']],
-      'Назовите пользователей будущего решения',
+      'Name the users of the future solution',
     ),
     category(
       'contact',
-      'Связь с бизнесом',
+      'Business contact',
       [
         [has('contact'), 5, 'contact'],
         [has('interactionFormat'), 5, 'interactionFormat'],
       ],
-      'Укажите канал связи и формат консультаций',
+      'Give a contact channel and consultation format',
     ),
   ];
   const value = breakdown.reduce((sum, item) => sum + item.earned, 0);
