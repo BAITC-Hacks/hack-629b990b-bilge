@@ -2,11 +2,37 @@
 
 Бизнес превращает короткое описание проблемы в карточку задачи: ИИ задаёт уточняющие вопросы, готовность считается по прозрачной формуле 0–100. Студенческие команды ходят по живому 3D-кампусу, видят друг друга онлайн, находят задачи-здания и откликаются. Бизнес вручную выбирает команду и подтверждает результат. Подтверждённый результат запускает для всех онлайн событие **GRAND TRIUMPH**.
 
-Стек: React 19 + TypeScript + Vite 8 + three 0.186 + React Three Fiber 9 + drei 10. Сервер: Express 5 + Socket.IO 4 + SQLite (`node:sqlite`). Проверено на Node 24.3.
+Стек: React 19 + TypeScript + Vite 8 + three 0.186 + React Three Fiber 9 + drei 10. Сервер: Express 5 + Socket.IO 4 + SQLite (`node:sqlite`). Проверено на Node 22.23 и Node 24.3.
+
+## Screenshots
+
+Реальные кадры с запущенного `npm run dev` (Chromium, 1600×1000). Герой — облёт кампуса.
+
+### 3D Campus
+
+![AI Sana 3D campus](docs/screenshots/3d-world-overview.png)
+
+### Multiplayer
+
+![Two players in the shared world](docs/screenshots/multiplayer.png)
+
+### Grand Triumph event
+
+![Grand Triumph](docs/screenshots/grand-triumph.png)
+
+### Task interaction
+
+![Task pavilion interaction](docs/screenshots/task-building.png)
+
+### World map
+
+![3D world map](docs/screenshots/world-map.png)
+
+Дополнительно: [игрок на улице](docs/screenshots/player-world.png), [отладка `?debug3d=1`](docs/screenshots/debug-3d.png).
 
 ## Запуск
 ```bash
-cd platform
+cd frontend
 npm install
 cp .env.example .env   # заполнить при необходимости; .env не коммитится
 npm run dev            # сервер :3001 + фронтенд :5173 (прокси /api и /socket.io)
@@ -125,14 +151,23 @@ npm run dev            # сервер :3001 + фронтенд :5173 (прокс
 Здания задач и монумент собраны из примитивов: в наборах нет подходящих моделей с узлами `Core_Fill`, `Beacon`, `Ring_Approved` из ТЗ 5.5.
 
 ## Проверено и не проверено
-- **Проверено 2026-09-23:**
+- **Проверено 2026-09-23 (повторно, в браузере):**
   - `tsc` для клиента и сервера без ошибок;
   - `npm test` — 17/17;
   - `vite build`;
-  - дымовой запуск: `/api/health`, снимок через прокси Vite (35 задач, 5 команд), рукопожатие Socket.IO, модели отдаются с кодом 200.
-- **Не проверено агентом:**
-  - вид сцены в браузере и FPS (визуальную проверку делает пользователь);
-  - живой вызов OpenAI с ключом из `.env` и моделью `OPENAI_MODEL`;
+  - `npm run dev`: backend `http://127.0.0.1:3001`, frontend `http://localhost:5173`;
+  - сцена в браузере рисуется (WebGL canvas, площадь, дороги, павильоны, базы команд, аватар);
+  - WASD двигает локального игрока; камера облёта и карта `M` работают;
+  - здания задач видны; карточка задачи открывается из «Все задачи» (сидед: Telegram-бот Жол Экспресс, 100/100);
+  - карта мира показывает Triumph Plaza, участки и базы команд;
+  - мультиплеер: две независимые сессии (`user-team-datanomads` и `…-datanomads-2`) — HUD «2 online», оба аватара в одном мире, движение второго видно первому;
+  - GRAND TRIUMPH: бизнес `biz-qarjy` нажал «Подтвердить результат» на этапе задачи `task-fintech`; в мире появился баннер команды QazML;
+  - `#/world?debug3d=1`: в этой сессии оверлей показал FPS 60, ~473 draw calls, ~992k треугольников, online 2.
+- **Не проверено / не утверждается:**
+  - стабильные 60 FPS на любом железе и «продакшен-производительность»;
+  - визуально отчётливая синхронизация эмоции 1–4 на втором клиенте (клавиша 1 отправлена, поза на скрине не выделена);
+  - живой вызов OpenAI с ключом из `.env` и моделью `OPENAI_MODEL` (локальный stub/fallback достаточен для демо);
+  - `npm run bots` в этой сессии не запускался;
   - ориентация моделей машин по направлению движения.
 - Чанк мира около 1,1 МБ (gzip около 300 КБ): загружается отдельно от 2D-страниц.
 
