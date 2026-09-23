@@ -1,12 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Фронтенд (5173) проксирует API и Socket.IO на BFF из ../backend (по умолчанию 3001).
-// Клиент BFF (../backend/client/index.ts) импортируется напрямую — поэтому разрешён доступ к соседней папке.
+// The frontend (5173) proxies the API and Socket.IO to the BFF in ../backend (3001 by default).
+// The BFF client (../backend/client/index.ts) is imported directly, so access to the sibling folder is allowed.
 const API = process.env.API_URL ?? 'http://127.0.0.1:3001';
 
-// Прокси разработки представляется бэкенду его собственным origin (он всегда в разрешённых):
-// так dev-сервер работает на любом порту (5174…) и по локальной сети без правки ALLOWED_ORIGINS.
+// The dev proxy presents itself to the backend with the backend's own origin (always allowed):
+// this way the dev server works on any port (5174…) and over the LAN without editing ALLOWED_ORIGINS.
 const proxy = { target: API, headers: { origin: API } };
 
 export default defineConfig({
