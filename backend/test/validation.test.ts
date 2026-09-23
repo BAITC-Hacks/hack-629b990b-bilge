@@ -10,8 +10,8 @@ it.each(['not-a-url', 'https://', ''])(
   },
 );
 it('partial form edits never reset omitted fields to defaults', () => {
-  expect(commands.draft.parse({ expectedVersion: 1, fields: { title: 'Новое название' } }).fields).toEqual({
-    title: 'Новое название',
+  expect(commands.draft.parse({ expectedVersion: 1, fields: { title: 'New title' } }).fields).toEqual({
+    title: 'New title',
   });
 });
 it.each(['0', '5', '50', '5%', '>0', '<=5'])('accepts the short measurable target %s', (successTarget) => {
