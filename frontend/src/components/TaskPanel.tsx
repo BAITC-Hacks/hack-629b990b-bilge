@@ -1,5 +1,5 @@
-// Карточка опубликованной задачи (GET /tasks/:id) — одинаково в 2D и в боковой панели 3D-мира.
-// Статус участия, следующее действие и доступность кнопок приходят от BFF (participation, actions).
+// Published task card (GET /tasks/:id) — identical in 2D and in the 3D world's side panel.
+// Participation status, next action and button availability come from the BFF (participation, actions).
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type DetailView } from '../api';
@@ -15,7 +15,7 @@ export function TaskPanel({ taskId, onClose }: { taskId: string; onClose?: () =>
   const [form, setForm] = useState({ idea: '', plan: '', estimatedTime: '', prototypeUrl: '' });
   const [ms, setMs] = useState({ title: '', acceptanceCriteria: '' });
   const [busy, setBusy] = useState(false);
-  // Ключ идемпотентности сохраняется до отправки: повтор после потери ответа не создаст второй отклик.
+  // The idempotency key is kept until sent: a retry after a lost response won't create a second application.
   const proposeKey = useRef(crypto.randomUUID());
   const milestoneKey = useRef(crypto.randomUUID());
   const formRef = useRef<HTMLFormElement>(null);
@@ -26,8 +26,8 @@ export function TaskPanel({ taskId, onClose }: { taskId: string; onClose?: () =>
     return () => { alive = false; };
   }, [taskId, revision]);
 
-  if (missing) return <div className="task-panel">{onClose && <button className="panel-close" onClick={onClose} aria-label="Закрыть">×</button>}<p>Задача не найдена или снята с публикации.</p></div>;
-  if (!detail) return <div className="task-panel"><p className="muted">Загрузка карточки…</p></div>;
+  if (missing) return <div className="task-panel">{onClose && <button className="panel-close" onClick={onClose} aria-label="Close">×</button>}<p>Task not found or unpublished.</p></div>;
+  if (!detail) return <div className="task-panel"><p className="muted">Loading card…</p></div>;
 
   const actor = snap?.bootstrap.actor ?? null;
   const c = detail.card;
@@ -44,15 +44,15 @@ export function TaskPanel({ taskId, onClose }: { taskId: string; onClose?: () =>
 
   return (
     <div className="task-panel">
-      {onClose && <button className="panel-close" onClick={onClose} aria-label="Закрыть карточку">×</button>}
-      <div className="kicker">Задача · {c.industry}</div>
+      {onClose && <button className="panel-close" onClick={onClose} aria-label="Close card">×</button>}
+      <div className="kicker">Task · {c.industry}</div>
       <h2>{c.title}</h2>
       <div className="row wrap">
         <LevelBadge value={c.readinessScore} level={c.readinessLevel} label={c.readinessLabel} />
-        {c.needsClarification && <span className="badge lvl-draft">Нужны уточнения</span>}
-        {c.pendingMilestones > 0 && <span className="badge pending">Этап на проверке</span>}
+        {c.needsClarification && <span className="badge lvl-draft">Needs clarification</span>}
+        {c.pendingMilestones > 0 && <span className="badge pending">Milestone in review</span>}
       </div>
-      <div className="task-meta"><span>Предложений: {c.offersCount}</span>{c.approvedMilestones > 0 && <span>Подтверждённых этапов: {c.approvedMilestones}</span>}</div>
+      <div className="task-meta"><span>Applications: {c.offersCount}</span>{c.approvedMilestones > 0 && <span>Confirmed milestones: {c.approvedMilestones}</span>}</div>
       {detail.teamProgress.length > 0 && (
         <div className="progress-teams">
           {detail.teamProgress.map((t) => {
@@ -70,26 +70,26 @@ export function TaskPanel({ taskId, onClose }: { taskId: string; onClose?: () =>
         </div>
       )}
       {isOwner && (
-        <div className="drawer-cta">Это ваша задача.
-          <span className="row"><Link className="btn small ghost" to={`/business/tasks/${c.id}`}>Улучшить карточку</Link><Link className="btn small" to={`/business/tasks/${c.id}/review`}>Сравнить отклики</Link></span>
+        <div className="drawer-cta">This is your task.
+          <span className="row"><Link className="btn small ghost" to={`/business/tasks/${c.id}`}>Improve card</Link><Link className="btn small" to={`/business/tasks/${c.id}/review`}>Compare applications</Link></span>
         </div>
       )}
 
       <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'card'} className={tab === 'card' ? 'on' : ''} onClick={() => setTab('card')}>Карточка</button>
-        <button role="tab" aria-selected={tab === 'score'} className={tab === 'score' ? 'on' : ''} onClick={() => setTab('score')}>Почему {c.readinessScore} баллов</button>
+        <button role="tab" aria-selected={tab === 'card'} className={tab === 'card' ? 'on' : ''} onClick={() => setTab('card')}>Card</button>
+        <button role="tab" aria-selected={tab === 'score'} className={tab === 'score' ? 'on' : ''} onClick={() => setTab('score')}>Why {c.readinessScore} points</button>
       </div>
       {tab === 'card' ? <CardView fields={c.fields} /> : <ScoreBreakdown score={c.score} />}
 
       <section className="panel-section" id="proposal">
-        <h3>Предложение команды</h3>
-        {!actor && <p className="muted">Гость видит задачи; для отклика войдите кодом команды. <Link to="/login">Войти</Link></p>}
-        {actor?.role === 'business' && !isOwner && <p className="muted">Отклики отправляют студенческие команды.</p>}
+        <h3>Team application</h3>
+        {!actor && <p className="muted">Guests can view tasks; sign in with a team code to apply. <Link to="/login">Sign in</Link></p>}
+        {actor?.role === 'business' && !isOwner && <p className="muted">Applications are submitted by student teams.</p>}
         {detail.myProposals.map((mp) => (
           <div key={mp.id} className={`my-prop st-${mp.status}`}>
             <b>{mp.statusLabel}</b> · {mp.estimatedTime}
             <div className="muted small">{mp.statusHint}</div>
-            {mp.decisionNote && <div className="small">Комментарий бизнеса: {mp.decisionNote}</div>}
+            {mp.decisionNote && <div className="small">Business comment: {mp.decisionNote}</div>}
           </div>
         ))}
         {actor?.role === 'team' && canPropose && (
@@ -104,27 +104,27 @@ export function TaskPanel({ taskId, onClose }: { taskId: string; onClose?: () =>
               if (r) { setDetail(r.data); setForm({ idea: '', plan: '', estimatedTime: '', prototypeUrl: '' }); proposeKey.current = crypto.randomUUID(); }
             }}
           >
-            <label>Идея решения<textarea rows={2} value={form.idea} onChange={(e) => setForm({ ...form, idea: e.target.value })} /></label>
+            <label>Solution idea<textarea rows={2} value={form.idea} onChange={(e) => setForm({ ...form, idea: e.target.value })} /></label>
             <FieldError field="idea" />
-            <label>План<textarea rows={2} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })} /></label>
+            <label>Plan<textarea rows={2} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })} /></label>
             <FieldError field="plan" />
             <div className="grid2">
-              <label>Срок<input value={form.estimatedTime} placeholder="например, 6 недель" onChange={(e) => setForm({ ...form, estimatedTime: e.target.value })} /></label>
-              <label>Ссылка на прототип<input value={form.prototypeUrl} placeholder="https://…" onChange={(e) => setForm({ ...form, prototypeUrl: e.target.value })} /></label>
+              <label>Timeline<input value={form.estimatedTime} placeholder="e.g. 6 weeks" onChange={(e) => setForm({ ...form, estimatedTime: e.target.value })} /></label>
+              <label>Prototype link<input value={form.prototypeUrl} placeholder="https://…" onChange={(e) => setForm({ ...form, prototypeUrl: e.target.value })} /></label>
             </div>
             <FieldError field="estimatedTime" />
             <FieldError field="prototypeUrl" />
             <div className="row">
               <button className="btn" type="submit" disabled={busy}>{canPropose.label}</button>
             </div>
-            <p className="muted small">Низкий рейтинг задачи не мешает отклику. Команду выбирает только бизнес.</p>
+            <p className="muted small">A low task score doesn't prevent applying. Only the business selects the team.</p>
           </form>
         )}
       </section>
 
       {p?.nextAction.id === 'create_milestone' && (
         <section className="panel-section" id="milestone-form">
-          <h3>Этап работы</h3>
+          <h3>Work milestone</h3>
           <form className="form" onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -132,11 +132,11 @@ export function TaskPanel({ taskId, onClose }: { taskId: string; onClose?: () =>
             setBusy(false);
             if (r) { milestoneKey.current = crypto.randomUUID(); nav(`/milestones/${r.data.milestone.id}`); }
           }}>
-            <label>Что сделаете в этапе<input value={ms.title} onChange={(e) => setMs({ ...ms, title: e.target.value })} /></label>
+            <label>What you'll deliver in this milestone<input value={ms.title} onChange={(e) => setMs({ ...ms, title: e.target.value })} /></label>
             <FieldError field="title" />
-            <label>Критерий приёмки<textarea rows={2} value={ms.acceptanceCriteria} onChange={(e) => setMs({ ...ms, acceptanceCriteria: e.target.value })} /></label>
+            <label>Acceptance criterion<textarea rows={2} value={ms.acceptanceCriteria} onChange={(e) => setMs({ ...ms, acceptanceCriteria: e.target.value })} /></label>
             <FieldError field="acceptanceCriteria" />
-            <button className="btn" type="submit" disabled={busy}>Создать этап (10 очков после подтверждения бизнесом)</button>
+            <button className="btn" type="submit" disabled={busy}>Create milestone (10 points after business confirmation)</button>
           </form>
         </section>
       )}
