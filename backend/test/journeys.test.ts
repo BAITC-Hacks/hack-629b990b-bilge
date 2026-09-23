@@ -6,6 +6,7 @@ import { join, resolve, sep } from 'node:path';
 import { createApp } from '../src/app.js';
 import { Auth } from '../src/auth.js';
 import { Store } from '../src/db.js';
+import { Tasks } from '../src/services/tasks.js';
 import { emptyFields, type AiProvider, type GitProvider } from '../src/contracts.js';
 
 export const fakeAi: AiProvider = {
@@ -156,6 +157,135 @@ describe('BFF task and team journeys', () => {
       (await request(runtime.app).get(`/api/v1/tasks/${card.task.id}`)).body.data.card.fields.title,
     ).toBe('Секретное название');
   });
+  it('resumes questions one by one after a reload and keeps saved answers editable', async () => {
+    const start = await post(business, '/tasks/start', {
+      rawDescription: 'Списания кафе',
+      industry: 'Общепит',
+    });
+    const id = start.body.data.task.id;
+    let response = await post(business, `/tasks/${id}/clarify`, { expectedVersion: 1 });
+    expect(response.body.data.clarification.nextQuestion.field).toBe('dataSource');
+    expect(response.body.data.steps.find((step: { id: string }) => step.id === 'clarify').complete).toBe(
+      false,
+    );
+    response = await post(business, `/tasks/${id}/answers`, {
+      expectedVersion: response.body.data.task.version,
+      answers: [{ field: 'dataSource', value: 'CSV продаж' }],
+    });
+    expect(response.body.data.clarification.questions).toHaveLength(3);
+    const reload = await request(runtime.app)
+      .get(`/api/v1/tasks/${id}/workspace`)
+      .auth(business, { type: 'bearer' });
+    expect(reload.body.data.clarification.progress).toEqual({
+      total: 3,
+      answered: 1,
+      skipped: 0,
+      remaining: 2,
+    });
+    expect(reload.body.data.clarification.questions[0]).toMatchObject({
+      answered: true,
+      value: 'CSV продаж',
+    });
+    expect(reload.body.data.clarification.nextQuestion.field).toBe('expectedResult');
+    expect(reload.body.data.nextAction.id).toBe('answer_question');
+    response = await post(business, `/tasks/${id}/draft`, {
+      expectedVersion: reload.body.data.task.version,
+      fields: { title: 'Сократить списания' },
+    });
+    expect(response.body.data.clarification.progress.remaining).toBe(2);
+    response = await post(business, `/tasks/${id}/answers`, {
+      expectedVersion: response.body.data.task.version,
+      answers: [
+        { field: 'expectedResult', value: 'Прототип прогноза' },
+        { field: 'acceptanceCriteria', value: 'Показать прогноз по CSV' },
+      ],
+    });
+    expect(response.body.data.clarification.nextQuestion).toBeNull();
+    expect(response.body.data.nextAction.id).toBe('confirm');
+    expect(response.body.data.steps.find((step: { id: string }) => step.id === 'clarify').complete).toBe(
+      true,
+    );
+    response = await post(business, `/tasks/${id}/draft`, {
+      expectedVersion: response.body.data.task.version,
+      fields: { expectedResult: '' },
+    });
+    expect(response.body.data.clarification.nextQuestion.field).toBe('expectedResult');
+  });
+  it('skips irrelevant questions without erasing them and permits publishing partial answers', async () => {
+    const start = await post(business, '/tasks/start', {
+      rawDescription: 'Списания кафе',
+      industry: 'Общепит',
+    });
+    const id = start.body.data.task.id;
+    let response = await post(business, `/tasks/${id}/clarify`, { expectedVersion: 1 });
+    response = await post(business, `/tasks/${id}/answers`, {
+      expectedVersion: response.body.data.task.version,
+      answers: [{ field: 'dataAvailability', value: 'none' }],
+    });
+    expect(response.body.data.clarification.questions[0]).toMatchObject({
+      field: 'dataSource',
+      skipped: true,
+    });
+    expect(response.body.data.clarification.progress).toEqual({
+      total: 3,
+      answered: 0,
+      skipped: 1,
+      remaining: 2,
+    });
+    expect(response.body.data.clarification.nextQuestion.field).toBe('expectedResult');
+    response = await post(business, `/tasks/${id}/answers`, {
+      expectedVersion: response.body.data.task.version,
+      answers: [{ field: 'dataAvailability', value: 'available' }],
+    });
+    expect(response.body.data.clarification.nextQuestion.field).toBe('dataSource');
+    response = await post(business, `/tasks/${id}/confirm`, {
+      expectedVersion: response.body.data.task.version,
+    });
+    expect(response.body.data.nextAction.id).toBe('publish');
+  });
+  it('opens a fresh clarification on a confirmed card until the owner reviews it again', async () => {
+    const workspace = await published();
+    const id = workspace.task.id;
+    const questions = await post(business, `/tasks/${id}/clarify`, {
+      expectedVersion: workspace.task.version,
+    });
+    expect(questions.body.data.clarification.progress.remaining).toBeGreaterThan(0);
+    expect(questions.body.data.nextAction.id).toBe('answer_question');
+    expect(questions.body.data.clarification.reviewed).toBe(false);
+    const confirmed = await post(business, `/tasks/${id}/confirm`, {
+      expectedVersion: questions.body.data.task.version,
+    });
+    expect(confirmed.body.data.nextAction.id).toBe('review');
+    expect(confirmed.body.data.clarification.reviewed).toBe(true);
+  });
+  it('accepts a metric and target instead of asking again for an alternative acceptance condition', async () => {
+    const start = await post(business, '/tasks/start', {
+      rawDescription: 'Списания кафе',
+      industry: 'Общепит',
+    });
+    const id = start.body.data.task.id;
+    const questions = await post(business, `/tasks/${id}/clarify`, { expectedVersion: 1 });
+    const response = await post(business, `/tasks/${id}/draft`, {
+      expectedVersion: questions.body.data.task.version,
+      fields: {
+        dataSource: 'CSV продаж',
+        expectedResult: 'Прототип',
+        successMetric: 'MAE',
+        successTarget: '5',
+      },
+    });
+    expect(response.body.data.clarification.questions[2]).toMatchObject({
+      field: 'acceptanceCriteria',
+      skipped: true,
+    });
+    expect(response.body.data.clarification.nextQuestion).toBeNull();
+    expect(response.body.data.nextAction.id).toBe('confirm');
+    const removed = await post(business, `/tasks/${id}/draft`, {
+      expectedVersion: response.body.data.task.version,
+      fields: { successTarget: '' },
+    });
+    expect(removed.body.data.clarification.nextQuestion.field).toBe('acceptanceCriteria');
+  });
   it('allows two selected teams, evidence review, and exactly one award on retry', async () => {
     const card = await published();
     const id = card.task.id;
@@ -191,6 +321,18 @@ describe('BFF task and team journeys', () => {
       description: 'Добавили демонстрацию прогноза',
     });
     expect(submitted.body.data.milestone.status).toBe('in_review');
+    expect(submitted.body.data.milestone.statusLabel).toBe('На проверке');
+    const waiting = await request(runtime.app).get('/api/v1/catalog');
+    expect(waiting.body.data.world.stations[0]).toMatchObject({
+      pendingMilestones: 1,
+      approvedMilestones: 0,
+    });
+    const publicProgress = await request(runtime.app).get(`/api/v1/tasks/${id}`);
+    expect(
+      publicProgress.body.data.teamProgress.find((t: { teamId: string }) => t.teamId === 'team1'),
+    ).toMatchObject({ pendingStages: 1, approvedStages: 0, status: 'in_review', statusLabel: 'На проверке' });
+    expect(JSON.stringify(publicProgress.body)).not.toContain('Добавили демонстрацию прогноза');
+    expect(JSON.stringify(publicProgress.body)).not.toContain('https://github.com/openai/openai-node');
     expect(submitted.body.data.milestone.actions[0].enabled).toBe(false);
     expect(
       (
@@ -208,6 +350,9 @@ describe('BFF task and team journeys', () => {
       feedback: 'Добавьте пример проверки на CSV',
     });
     expect(returned.body.data.milestone.status).toBe('changes_requested');
+    expect(
+      (await request(runtime.app).get('/api/v1/catalog')).body.data.world.stations[0].pendingMilestones,
+    ).toBe(0);
     expect(store.points('team1')).toBe(0);
     const revised = await post(team1, `/milestones/${m.id}/evidence`, {
       expectedVersion: returned.body.data.milestone.version,
@@ -219,6 +364,10 @@ describe('BFF task and team journeys', () => {
     expect((await post(business, `/milestones/${m.id}/decision`, body)).status).toBe(200);
     expect((await post(business, `/milestones/${m.id}/decision`, body)).status).toBe(200);
     expect(store.points('team1')).toBe(10);
+    expect((await request(runtime.app).get('/api/v1/catalog')).body.data.world.stations[0]).toMatchObject({
+      pendingMilestones: 0,
+      approvedMilestones: 1,
+    });
     expect(store.points('team2')).toBe(0);
     const reviewed = await request(runtime.app)
       .get(`/api/v1/tasks/${id}/review`)
@@ -297,6 +446,78 @@ describe('BFF task and team journeys', () => {
       (await request(runtime.app).get(`/api/v1/tasks/${card.task.id}/review`).auth(team1, { type: 'bearer' }))
         .status,
     ).toBe(403);
+  });
+  it('lets the owner save while teams respond but still rejects edits from a stale editor tab', async () => {
+    const workspace = await published();
+    const id = workspace.task.id;
+    const proposed = await post(team1, `/tasks/${id}/proposals`, {
+      idea: 'Прогноз',
+      plan: 'Проверим CSV',
+      estimatedTime: 'Неделя',
+      prototypeUrl: 'https://example.com',
+    });
+    expect(proposed.status).toBe(201);
+    expect(proposed.body.data.card.version).toBeGreaterThan(workspace.task.version);
+    const unchanged = await request(runtime.app)
+      .get(`/api/v1/tasks/${id}/workspace`)
+      .auth(business, { type: 'bearer' });
+    expect(unchanged.body.data.task.version).toBe(workspace.task.version);
+    const saved = await post(business, `/tasks/${id}/draft`, {
+      expectedVersion: workspace.task.version,
+      fields: { need: 'Уточнённая потребность бизнеса' },
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.body.data.draft.fields.need).toBe('Уточнённая потребность бизнеса');
+    const conflict = await post(business, `/tasks/${id}/draft`, {
+      expectedVersion: workspace.task.version,
+      fields: { need: 'Старая версия из второй вкладки' },
+    });
+    expect(conflict.status).toBe(409);
+    expect(conflict.body.error.code).toBe('STALE_VERSION');
+    const proposal = proposed.body.data.myProposals[0];
+    await post(business, `/proposals/${proposal.id}/decision`, { expectedVersion: 1, decision: 'select' });
+    const milestone = await post(team1, `/tasks/${id}/milestones`, {
+      title: 'Прототип',
+      acceptanceCriteria: 'Работа с CSV',
+    });
+    await post(team1, `/milestones/${milestone.body.data.milestone.id}/evidence`, {
+      expectedVersion: 1,
+      evidenceUrl: 'https://example.com',
+      description: 'Пилот выполнен',
+    });
+    const confirm = await post(business, `/tasks/${id}/confirm`, {
+      expectedVersion: saved.body.data.task.version,
+    });
+    expect(confirm.status).toBe(200);
+    expect(confirm.body.data.confirmedFields.need).toBe('Уточнённая потребность бизнеса');
+  });
+  it('does not discard an in-flight AI clarification because a proposal arrived', async () => {
+    const workspace = await published();
+    const id = workspace.task.id;
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const tasks = new Tasks(
+      store,
+      {
+        ...fakeAi,
+        async clarify(input) {
+          await ready;
+          return fakeAi.clarify(input);
+        },
+      },
+      () => {},
+    );
+    const pending = tasks.clarify(runtime.auth.resolve(business)!, id, workspace.task.version);
+    await post(team1, `/tasks/${id}/proposals`, {
+      idea: 'Прогноз',
+      plan: 'Проверим CSV',
+      estimatedTime: 'Неделя',
+      prototypeUrl: 'https://example.com',
+    });
+    release();
+    await expect(pending).resolves.toMatchObject({ clarification: { mode: 'stub' } });
   });
   it('deduplicates retries but accepts distinct proposals from the same team', async () => {
     const card = await published();

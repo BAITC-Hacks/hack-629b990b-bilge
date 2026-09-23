@@ -22,6 +22,10 @@ export const meaningful = (value: string): boolean => {
 export function getLevel(value: number): Level {
   return value >= 90 ? 'priority' : value >= 70 ? 'ready' : value >= 40 ? 'working' : 'draft';
 }
+export function hasMetricAndTarget(fields: TaskFields): boolean {
+  const numericTarget = /^[<>≤≥=]*\s*[-+]?\d+(?:[.,]\d+)?\s*%?$/.test(fields.successTarget.trim());
+  return meaningful(fields.successMetric) && (meaningful(fields.successTarget) || numericTarget);
+}
 export function calculateScore(fields: TaskFields): Score {
   const has = (key: FieldKey) => typeof fields[key] === 'string' && meaningful(fields[key] as string);
   const category = (
@@ -37,9 +41,7 @@ export function calculateScore(fields: TaskFields): Score {
     missingFields: parts.filter(([ok]) => !ok).map(([, , field]) => field),
     hint,
   });
-  const numericTarget = /^[<>≤≥=]*\s*[-+]?\d+(?:[.,]\d+)?\s*%?$/.test(fields.successTarget.trim());
-  const criterion =
-    has('acceptanceCriteria') || (has('successMetric') && (has('successTarget') || numericTarget));
+  const criterion = has('acceptanceCriteria') || hasMetricAndTarget(fields);
   const breakdown = [
     category(
       'context',

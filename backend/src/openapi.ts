@@ -116,7 +116,11 @@ const schemas: Record<string, Schema> = {
   }),
   Card: object({
     id: string,
-    version: integer,
+    version: {
+      ...integer,
+      description:
+        'Ревизия всей активности задачи. Для expectedVersion редактора используйте workspace.task.version.',
+    },
     title: string,
     industry: string,
     summary: string,
@@ -127,6 +131,10 @@ const schemas: Record<string, Schema> = {
     offersCount: integer,
     selectedTeams: array(object({ id: string, name: string, avatarPreset: string, color: string })),
     approvedMilestones: integer,
+    pendingMilestones: {
+      ...integer,
+      description: 'Этапы выбранных команд на проверке. Маркер ожидания для 2D/3D; очки ещё не начислены.',
+    },
     publishedAt: nullable(string),
     actions,
   }),
@@ -166,6 +174,8 @@ const schemas: Record<string, Schema> = {
     acceptanceCriteria: string,
     points: { type: 'integer', const: 10 },
     status: { type: 'string', enum: ['draft', 'in_review', 'changes_requested', 'approved'] },
+    statusLabel: string,
+    statusHint: string,
     evidenceUrl: string,
     description: string,
     evidence: nullable(ref('Evidence')),
@@ -221,13 +231,25 @@ const schemas: Record<string, Schema> = {
   DetailView: screen('task-detail', 'DetailView', {
     card: { allOf: [ref('Card'), object({ fields: ref('TaskFields'), score: ref('Score') })] },
     myProposals: array(ref('Proposal')),
-    teamProgress: array(object({ teamId: string, name: string, approvedStages: integer })),
+    teamProgress: array(
+      object({
+        teamId: string,
+        name: string,
+        approvedStages: integer,
+        pendingStages: integer,
+        status: { type: 'string', enum: ['working', 'in_review', 'approved'] },
+        statusLabel: string,
+      }),
+    ),
     actions,
   }),
   WorkspaceView: screen('task-workspace', 'WorkspaceView', {
     task: object({
       id: string,
-      version: integer,
+      version: {
+        ...integer,
+        description: 'Версия редактора для expectedVersion. Отклики и этапы её не меняют.',
+      },
       publicationStatus: { type: 'string', enum: ['draft', 'published'] },
       rawDescription: string,
       updatedAt: string,
@@ -245,19 +267,32 @@ const schemas: Record<string, Schema> = {
         label: string,
         missing: boolean,
         input: { type: 'string', enum: ['checkbox', 'select', 'text'] },
+        options: nullable(array(object({ value: string, label: string }))),
       }),
     ),
-    clarification: nullable(
-      object({
-        missingFields: array(string),
-        questions: array(object({ field: string, text: string })),
-        mode: { type: 'string', enum: ['openai', 'stub'] },
-        warning: nullable(string),
-      }),
-    ),
+    clarification: nullable(ref('Clarification')),
     steps: array(object({ id: string, label: string, complete: boolean })),
     nextAction: object({ id: string, label: string, hint: string }),
     actions,
+  }),
+  ClarificationQuestion: object({
+    field: string,
+    text: string,
+    index: integer,
+    value: { anyOf: [string, boolean] },
+    answered: boolean,
+    skipped: boolean,
+    input: { type: 'string', enum: ['checkbox', 'select', 'text'] },
+    options: nullable(array(object({ value: string, label: string }))),
+  }),
+  Clarification: object({
+    reviewed: boolean,
+    missingFields: array(string),
+    questions: array(ref('ClarificationQuestion')),
+    nextQuestion: nullable(ref('ClarificationQuestion')),
+    progress: object({ total: integer, answered: integer, skipped: integer, remaining: integer }),
+    mode: { type: 'string', enum: ['openai', 'stub'] },
+    warning: nullable(string),
   }),
   ReviewView: screen('review-desk', 'ReviewView', {
     task: object({ id: string, title: string, version: integer }),
@@ -485,7 +520,7 @@ route(
   {
     body: 'answers',
     description:
-      'value должен соответствовать полю: noConstraints — boolean; dataAvailability — available/none/unknown; остальные — строки. Официальный снимок ещё не меняется.',
+      'Один или несколько ответов сохраняются вместе с прогрессом; nextQuestion указывает следующий вопрос. value: noConstraints — boolean; dataAvailability — available/none/unknown; остальные — строки. Официальный снимок ещё не меняется.',
   },
 );
 route(
@@ -498,13 +533,13 @@ route(
   {
     body: 'version',
     description:
-      'Возвращает 3–5 вопросов. clarification.mode/warning показывают OpenAI или резервный stub. expectedVersion берите из workspace.task.version.',
+      'Начинает новый сеанс из 3–5 вопросов с progress и nextQuestion. Для возобновления используйте GET workspace. clarification.mode/warning показывают OpenAI или резервный stub. expectedVersion берите из workspace.task.version.',
   },
 );
 route('post', '/tasks/{id}/confirm', 'confirmTask', 'Подтвердить сведения', 'WorkspaceView', 'owner', {
   body: 'version',
   description:
-    'Заменяет confirmedFields целиком и пересчитывает официальный балл, в том числе вниз. Для опубликованной задачи сразу обновляет публичную карточку.',
+    'Заменяет confirmedFields целиком и пересчитывает официальный балл, в том числе вниз. Завершает текущий сеанс уточнений (reviewed=true), неполные ответы допустимы. Для опубликованной задачи сразу обновляет публичную карточку.',
 });
 route(
   'post',

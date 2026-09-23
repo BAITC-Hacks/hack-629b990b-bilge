@@ -119,14 +119,19 @@ export function createApp(options: AppOptions) {
     realtime.revoke(value);
     send(res, { signedOut: true }, 'Вы вышли');
   });
-  api.post('/teams/start', (req, res) =>
-    send(
-      res,
-      auth.createTeam(commands.createTeam.parse(req.body)),
-      'Команда создана. Сохраните код входа.',
-      201,
-    ),
-  );
+  api.post('/teams/start', (req, res) => {
+    const created = auth.createTeam(commands.createTeam.parse(req.body));
+    realtime.emit({
+      type: 'team.created',
+      taskId: null,
+      entityId: created.team.id,
+      version: 1,
+      visibility: 'public',
+      userIds: [],
+      invalidate: ['scoreboard'],
+    });
+    send(res, created, 'Команда создана. Сохраните код входа.', 201);
+  });
   api.get('/catalog', (req, res) =>
     send(res, views.catalog(optional(req), commands.catalog.parse(req.query))),
   );
@@ -161,7 +166,14 @@ export function createApp(options: AppOptions) {
   api.post('/tasks/:id/answers', (req, res) => {
     const user = actor(req);
     const task = tasks.answers(user, id(req), commands.answers.parse(req.body));
-    send(res, views.workspace(task.id, user), 'Ответы перенесены в карточку. Проверьте сведения.');
+    const workspace = views.workspace(task.id, user);
+    send(
+      res,
+      workspace,
+      workspace.clarification?.nextQuestion
+        ? 'Ответ сохранён. Можно перейти к следующему вопросу или вернуться позже.'
+        : 'Ответы сохранены. Проверьте карточку и подтвердите сведения.',
+    );
   });
   api.post('/tasks/:id/clarify', async (req, res) => {
     const user = actor(req);

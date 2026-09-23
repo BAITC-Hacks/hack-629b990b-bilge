@@ -11,7 +11,7 @@ import {
   type TaskFields,
   type Team,
 } from './contracts.js';
-import { calculateScore, levelLabels, meaningful } from './domain/score.js';
+import { calculateScore, hasMetricAndTarget, levelLabels, meaningful } from './domain/score.js';
 import { Store } from './db.js';
 import { invariant } from './errors.js';
 import { Tasks } from './services/tasks.js';
@@ -34,6 +34,57 @@ const fieldLabels: Record<FieldKey, string> = {
   contact: 'Канал связи',
   interactionFormat: 'Формат консультаций',
 };
+const fieldInput = (field: FieldKey) => ({
+  input:
+    field === 'noConstraints'
+      ? ('checkbox' as const)
+      : field === 'dataAvailability'
+        ? ('select' as const)
+        : ('text' as const),
+  options:
+    field === 'dataAvailability'
+      ? [
+          { value: 'available', label: 'Данные есть' },
+          { value: 'none', label: 'Данных пока нет' },
+          { value: 'unknown', label: 'Пока не знаю' },
+        ]
+      : null,
+});
+
+function clarificationView(task: Task) {
+  if (!task.clarification) return null;
+  const { answeredFields = [], reviewed = false, ...result } = task.clarification;
+  const questions = result.questions.map((question, index) => {
+    const skipped =
+      (question.field === 'dataSource' && task.draftFields.dataAvailability === 'none') ||
+      (question.field === 'constraints' && task.draftFields.noConstraints) ||
+      (question.field === 'acceptanceCriteria' && hasMetricAndTarget(task.draftFields)) ||
+      (['successMetric', 'successTarget'].includes(question.field) &&
+        meaningful(task.draftFields.acceptanceCriteria));
+    return {
+      ...question,
+      ...fieldInput(question.field),
+      index: index + 1,
+      value: task.draftFields[question.field],
+      answered: !skipped && answeredFields.includes(question.field),
+      skipped,
+    };
+  });
+  const pending = questions.filter((question) => !question.answered && !question.skipped);
+  return {
+    ...result,
+    reviewed,
+    missingFields: calculateScore(task.draftFields).missingFields,
+    questions,
+    nextQuestion: pending[0] ?? null,
+    progress: {
+      total: questions.length,
+      answered: questions.filter((question) => question.answered).length,
+      skipped: questions.filter((question) => question.skipped).length,
+      remaining: pending.length,
+    },
+  };
+}
 export class Views {
   constructor(
     readonly store: Store,
@@ -63,7 +114,7 @@ export class Views {
     const score = calculateScore(fields);
     return {
       id: task.id,
-      version: task.version,
+      version: task.revision ?? task.version,
       title: fields.title,
       industry: fields.industry,
       summary: fields.need || fields.context,
@@ -79,6 +130,9 @@ export class Views {
         color: t.color,
       })),
       approvedMilestones: this.milestones(task.id).filter((m) => m.status === 'approved').length,
+      pendingMilestones: this.milestones(task.id).filter(
+        (m) => m.status === 'in_review' && this.store.isSelected(task.id, m.teamId),
+      ).length,
       publishedAt: task.publishedAt,
       actions: [
         action('open', 'Открыть карточку'),
@@ -167,12 +221,23 @@ export class Views {
         score: calculateScore(task.confirmedFields!),
       },
       myProposals: actor?.teamId ? this.proposals(id).filter((p) => p.teamId === actor.teamId) : [],
-      teamProgress: this.selected(id).map((team) => ({
-        teamId: team.id,
-        name: team.name,
-        approvedStages: this.milestones(id).filter((m) => m.teamId === team.id && m.status === 'approved')
-          .length,
-      })),
+      teamProgress: this.selected(id).map((team) => {
+        const stages = this.milestones(id).filter((m) => m.teamId === team.id);
+        const approvedStages = stages.filter((m) => m.status === 'approved').length;
+        const pendingStages = stages.filter((m) => m.status === 'in_review').length;
+        return {
+          teamId: team.id,
+          name: team.name,
+          approvedStages,
+          pendingStages,
+          status: pendingStages
+            ? ('in_review' as const)
+            : approvedStages
+              ? ('approved' as const)
+              : ('working' as const),
+          statusLabel: pendingStages ? 'На проверке' : approvedStages ? 'Этап подтверждён' : 'В работе',
+        };
+      }),
       actions: [
         action('propose', 'Отправить предложение', actor?.role === 'team', 'Войдите под командой'),
         ...(owner ? [action('edit', 'Улучшить карточку'), action('review', 'Сравнить отклики')] : []),
@@ -186,6 +251,8 @@ export class Views {
     const hasUnconfirmedChanges = JSON.stringify(task.draftFields) !== JSON.stringify(task.confirmedFields);
     const titleValid = meaningful(task.draftFields.title) && meaningful(task.draftFields.industry);
     const needsInitialClarification = !task.clarifiedAt && !task.confirmedFields;
+    const clarification = clarificationView(task);
+    const continueQuestions = clarification?.nextQuestion && !clarification.reviewed;
     return {
       screen: 'task-workspace' as const,
       task: {
@@ -208,12 +275,16 @@ export class Views {
         field,
         label: fieldLabels[field],
         missing: forecast.missingFields.includes(field),
-        input: field === 'noConstraints' ? 'checkbox' : field === 'dataAvailability' ? 'select' : 'text',
+        ...fieldInput(field),
       })),
-      clarification: task.clarification,
+      clarification,
       steps: [
         { id: 'describe', label: 'Описание', complete: !!task.rawDescription },
-        { id: 'clarify', label: 'Уточнения', complete: !!task.clarifiedAt },
+        {
+          id: 'clarify',
+          label: 'Уточнения',
+          complete: !!clarification && (clarification.reviewed || clarification.progress.remaining === 0),
+        },
         { id: 'confirm', label: 'Подтверждение', complete: !!task.confirmedFields && !hasUnconfirmedChanges },
         { id: 'publish', label: 'Публикация', complete: task.publicationStatus === 'published' },
       ],
@@ -223,19 +294,29 @@ export class Views {
             label: 'Уточнить задачу с ИИ',
             hint: 'Ответьте на вопросы, чтобы командам было проще начать работу',
           }
-        : !task.confirmedFields || hasUnconfirmedChanges
+        : continueQuestions
           ? {
-              id: 'confirm',
-              label: 'Подтвердить сведения',
-              hint: forecast.nextImprovement?.message ?? 'Проверьте сведения перед подтверждением',
+              id: 'answer_question',
+              label: 'Продолжить уточнение',
+              hint: `Осталось вопросов: ${clarification!.progress.remaining}. Ответы сохранены, можно вернуться позже.`,
             }
-          : task.publicationStatus === 'draft'
-            ? { id: 'publish', label: 'Опубликовать задачу', hint: 'Карточка станет доступна всем командам' }
-            : {
-                id: 'review',
-                label: 'Посмотреть отклики',
-                hint: 'Выберите одну, несколько или ни одной команды',
-              },
+          : !task.confirmedFields || hasUnconfirmedChanges || (clarification && !clarification.reviewed)
+            ? {
+                id: 'confirm',
+                label: 'Подтвердить сведения',
+                hint: forecast.nextImprovement?.message ?? 'Проверьте сведения перед подтверждением',
+              }
+            : task.publicationStatus === 'draft'
+              ? {
+                  id: 'publish',
+                  label: 'Опубликовать задачу',
+                  hint: 'Карточка станет доступна всем командам',
+                }
+              : {
+                  id: 'review',
+                  label: 'Посмотреть отклики',
+                  hint: 'Выберите одну, несколько или ни одной команды',
+                },
       actions: [
         action('save_draft', 'Сохранить черновик'),
         action('clarify', 'Помочь уточнить'),
@@ -290,8 +371,28 @@ export class Views {
       'Этап доступен только команде и владельцу задачи',
     );
     const selected = this.store.isSelected(item.taskId, item.teamId);
+    const statusLabels = {
+      draft: 'Подготовка результата',
+      in_review: 'На проверке',
+      changes_requested: 'Нужна доработка',
+      approved: 'Этап подтверждён',
+    };
+    const statusHints = {
+      draft: 'Добавьте ссылку на Git/PR и опишите выполненную работу.',
+      in_review: owner
+        ? 'Проверьте результат по критериям этапа и примите решение.'
+        : 'Бизнес проверяет результат. Очки появятся после подтверждения.',
+      changes_requested: owner
+        ? 'Команда получила замечания. Дождитесь повторной отправки.'
+        : 'Учтите замечания бизнеса и отправьте обновлённый результат.',
+      approved: 'Результат принят. Команде начислено 10 очков.',
+    };
     return {
       ...item,
+      statusLabel: statusLabels[item.status],
+      statusHint: !selected
+        ? 'Выбор команды отменён. Продолжить можно после повторного выбора бизнесом.'
+        : statusHints[item.status],
       teamName: this.team(item.teamId).name,
       confirmedPoints: this.store.points(item.teamId),
       actions: owner

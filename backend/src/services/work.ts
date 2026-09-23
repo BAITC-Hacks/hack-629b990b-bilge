@@ -63,7 +63,7 @@ export class Work {
       };
       this.store.saveProposal(item);
       const task = this.tasks.require(taskId);
-      this.tasks.bump(task);
+      this.tasks.bumpActivity(task);
       created = true;
       return item.id;
     });
@@ -97,7 +97,7 @@ export class Work {
       item.decisionNote = input.note;
       item.version++;
       this.store.saveProposal(item);
-      this.tasks.bump(task);
+      this.tasks.bumpActivity(task);
       changed = true;
       return item;
     });
@@ -146,7 +146,7 @@ export class Work {
         createdAt: new Date().toISOString(),
       };
       this.store.saveMilestone(item);
-      this.tasks.bump(this.tasks.require(taskId));
+      this.tasks.bumpActivity(this.tasks.require(taskId));
       created = true;
       return item.id;
     });
@@ -198,13 +198,13 @@ export class Work {
       item.feedback = '';
       item.version++;
       this.store.saveMilestone(item);
-      this.tasks.bump(this.tasks.require(item.taskId));
+      this.tasks.bumpActivity(this.tasks.require(item.taskId));
       return item;
     });
     this.tasks.announce(
       this.tasks.require(item.taskId),
       'milestone.changed',
-      false,
+      true,
       id,
       this.store.teamUsers(teamId),
     );
@@ -241,14 +241,10 @@ export class Work {
       if (item.status === 'approved') {
         item.approvedAt = new Date().toISOString();
         item.approvedBy = actor.id;
-        this.store.db
-          .prepare(
-            'INSERT INTO score_events(milestone_id,team_id,points,approved_at) VALUES(?,?,?,?) ON CONFLICT(milestone_id) DO NOTHING',
-          )
-          .run(item.id, item.teamId, item.points, item.approvedAt);
+        this.store.awardMilestone({ ...item, approvedAt: item.approvedAt });
       }
       this.store.saveMilestone(item);
-      this.tasks.bump(task);
+      this.tasks.bumpActivity(task);
       changed = true;
       return item;
     });
@@ -256,7 +252,7 @@ export class Work {
       this.tasks.announce(
         this.tasks.require(item.taskId),
         'milestone.decided',
-        item.status === 'approved',
+        true,
         id,
         this.store.teamUsers(item.teamId),
       );

@@ -46,8 +46,13 @@ export class Tasks {
     return task;
   }
   bump(task: Task) {
+    task.revision ??= task.version;
     task.version++;
     task.updatedAt = new Date().toISOString();
+    this.bumpActivity(task);
+  }
+  bumpActivity(task: Task) {
+    task.revision = (task.revision ?? task.version) + 1;
     this.store.saveTask(task);
   }
   announce(
@@ -61,10 +66,18 @@ export class Tasks {
       type,
       taskId: task.id,
       entityId,
-      version: task.version,
+      version: task.revision ?? task.version,
       visibility: publicChange && task.publicationStatus === 'published' ? 'public' : 'private',
       userIds: [task.businessUserId, ...userIds],
-      invalidate: ['catalog', 'task', 'workspace', 'dashboard', 'review', 'scoreboard'],
+      invalidate: [
+        'catalog',
+        'task',
+        'workspace',
+        'dashboard',
+        'review',
+        'scoreboard',
+        ...(type.startsWith('milestone.') ? ['milestone'] : []),
+      ],
     });
   }
   once(actor: Actor, command: string, key: string | undefined, input: unknown, create: () => string): string {
@@ -77,9 +90,7 @@ export class Tasks {
         'Idempotency-Key должен содержать 8–120 букв, цифр, дефисов или подчёркиваний',
       );
       const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
-      const previous = this.store.db
-        .prepare('SELECT fingerprint,result_id FROM idempotency WHERE user_id=? AND command=? AND key=?')
-        .get(actor.id, command, key) as { fingerprint: string; result_id: string } | undefined;
+      const previous = this.store.commandResult(actor.id, command, key);
       if (previous) {
         invariant(
           previous.fingerprint === fingerprint,
@@ -87,12 +98,10 @@ export class Tasks {
           'IDEMPOTENCY_CONFLICT',
           'Этот ключ повтора уже использован с другим содержимым',
         );
-        return previous.result_id;
+        return previous.resultId;
       }
       const id = create();
-      this.store.db
-        .prepare('INSERT INTO idempotency(user_id,command,key,fingerprint,result_id) VALUES(?,?,?,?,?)')
-        .run(actor.id, command, key, fingerprint, id);
+      this.store.saveCommandResult(actor.id, command, key, fingerprint, id);
       return id;
     });
   }
@@ -138,7 +147,16 @@ export class Tasks {
       const task = this.own(actor, id);
       assertVersion(task.version, input.expectedVersion);
       task.draftFields = fieldsSchema.parse({ ...task.draftFields, ...input.fields });
-      task.clarification = null;
+      if (task.clarification) {
+        const answered = new Set(task.clarification.answeredFields ?? []);
+        for (const { field } of task.clarification.questions) {
+          if (!(field in input.fields)) continue;
+          const value = task.draftFields[field];
+          if (typeof value === 'boolean' || value.length > 0) answered.add(field);
+          else answered.delete(field);
+        }
+        task.clarification.answeredFields = [...answered];
+      }
       this.bump(task);
       return task;
     });
@@ -162,7 +180,7 @@ export class Tasks {
     const task = this.store.transaction(() => {
       const task = this.own(actor, id);
       assertVersion(task.version, expected);
-      task.clarification = clarification;
+      task.clarification = { ...clarification, answeredFields: [], reviewed: false };
       task.clarifiedAt = new Date().toISOString();
       this.bump(task);
       return task;
@@ -180,6 +198,7 @@ export class Tasks {
       if (Object.keys(fieldErrors).length)
         throw new AppError(422, 'REVIEW_REQUIRED', 'Проверьте карточку перед подтверждением', fieldErrors);
       task.confirmedFields = structuredClone(task.draftFields);
+      if (task.clarification) task.clarification.reviewed = true;
       this.bump(task);
       return task;
     });

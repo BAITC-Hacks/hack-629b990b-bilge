@@ -92,4 +92,23 @@ export class Store {
         .get(teamId) as { points: number }
     ).points;
   }
+  commandResult(userId: string, command: string, key: string) {
+    return this.db
+      .prepare(
+        'SELECT fingerprint,result_id AS resultId FROM idempotency WHERE user_id=? AND command=? AND key=?',
+      )
+      .get(userId, command, key) as { fingerprint: string; resultId: string } | undefined;
+  }
+  saveCommandResult(userId: string, command: string, key: string, fingerprint: string, resultId: string) {
+    this.db
+      .prepare('INSERT INTO idempotency(user_id,command,key,fingerprint,result_id) VALUES(?,?,?,?,?)')
+      .run(userId, command, key, fingerprint, resultId);
+  }
+  awardMilestone(item: Milestone & { approvedAt: string }) {
+    this.db
+      .prepare(
+        'INSERT INTO score_events(milestone_id,team_id,points,approved_at) VALUES(?,?,?,?) ON CONFLICT(milestone_id) DO NOTHING',
+      )
+      .run(item.id, item.teamId, item.points, item.approvedAt);
+  }
 }

@@ -94,8 +94,11 @@ export type Task = {
   draftFields: TaskFields;
   confirmedFields: TaskFields | null;
   publicationStatus: 'draft' | 'published';
+  /** Editor version: changes only when the business edits, clarifies, confirms or publishes. */
   version: number;
-  clarification: ClarificationResult | null;
+  /** Revision of all task activity, used by public cards and realtime. Older rows fall back to version. */
+  revision?: number;
+  clarification: (ClarificationResult & { answeredFields?: FieldKey[]; reviewed?: boolean }) | null;
   clarifiedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -247,13 +250,14 @@ export const commands = {
 export type CatalogQuery = z.infer<typeof commands.catalog>;
 export type DomainEvent = {
   type:
+    | 'team.created'
     | 'task.changed'
     | 'task.published'
     | 'proposal.created'
     | 'proposal.decided'
     | 'milestone.decided'
     | 'milestone.changed';
-  taskId: string;
+  taskId: string | null;
   entityId: string;
   version: number;
   visibility: 'public' | 'private';

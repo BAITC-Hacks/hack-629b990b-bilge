@@ -3,29 +3,23 @@ import { io, type Socket } from 'socket.io-client';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { Store } from '../src/db.js';
-import type { AiProvider, DomainEvent, GitProvider } from '../src/contracts.js';
+import type { DomainEvent } from '../src/contracts.js';
+import { createAiProvider } from '../src/integrations/ai.js';
+import { createGitProvider } from '../src/integrations/git.js';
 
 let runtime: ReturnType<typeof createApp>;
 let store: Store;
 let sockets: Socket[];
 let business: string;
 let address: string;
-const ai: AiProvider = {
-  async clarify() {
-    throw new Error('unused');
-  },
-  async reviewEvidence() {
-    throw new Error('unused');
-  },
-};
-const git: GitProvider = {
-  async inspect() {
-    throw new Error('unused');
-  },
-};
 beforeEach(async () => {
   store = new Store();
-  runtime = createApp({ store, ai, git, rateLimit: false });
+  runtime = createApp({
+    store,
+    ai: createAiProvider({ mode: 'stub' }),
+    git: createGitProvider({ mode: 'mock' }),
+    rateLimit: false,
+  });
   sockets = [];
   runtime.auth.addUser(
     { id: 'business', role: 'business', displayName: 'Кафе', teamId: null },
@@ -90,4 +84,81 @@ it('disconnects the private socket immediately when its session is logged out', 
   await request(runtime.app).post('/api/v1/session/end').auth(business, { type: 'bearer' }).send({});
   await disconnected;
   expect(socket.connected).toBe(false);
+});
+it('refreshes the open scoreboard when a new team joins without exposing its code or token', async () => {
+  const guest = await connect();
+  const events: unknown[] = [];
+  guest.on('invalidate', (event) => events.push(event));
+  const created = await request(runtime.app).post('/api/v1/teams/start').send({ name: 'Новая команда' });
+  expect(created.status).toBe(201);
+  await expect.poll(() => events.length, { timeout: 1000 }).toBe(1);
+  expect(events[0]).toMatchObject({
+    type: 'team.created',
+    entityId: created.body.data.team.id,
+    taskId: null,
+    invalidate: ['scoreboard'],
+  });
+  expect(JSON.stringify(events)).not.toContain(created.body.data.code);
+  expect(JSON.stringify(events)).not.toContain(created.body.data.token);
+  expect((await request(runtime.app).get('/api/v1/scoreboard')).body.data.teams[0].name).toBe(
+    'Новая команда',
+  );
+});
+it('refreshes public pending markers on submission and return while keeping evidence private', async () => {
+  const post = (token: string, path: string, body: object) =>
+    request(runtime.app).post(`/api/v1${path}`).auth(token, { type: 'bearer' }).send(body);
+  const team = await request(runtime.app).post('/api/v1/teams/start').send({ name: 'Команда' });
+  const token = team.body.data.token;
+  const start = await post(business, '/tasks/start', {
+    rawDescription: 'Списания кафе',
+    industry: 'Общепит',
+  });
+  const taskId = start.body.data.task.id;
+  const confirmed = await post(business, `/tasks/${taskId}/confirm`, { expectedVersion: 1 });
+  await post(business, `/tasks/${taskId}/publish`, { expectedVersion: confirmed.body.data.task.version });
+  const proposed = await post(token, `/tasks/${taskId}/proposals`, {
+    idea: 'Прогноз',
+    plan: 'Прототип',
+    estimatedTime: 'Неделя',
+    prototypeUrl: 'https://example.com',
+  });
+  const proposal = proposed.body.data.myProposals[0];
+  await post(business, `/proposals/${proposal.id}/decision`, {
+    expectedVersion: proposal.version,
+    decision: 'select',
+  });
+  const created = await post(token, `/tasks/${taskId}/milestones`, {
+    title: 'Прогноз',
+    acceptanceCriteria: 'Проверка CSV',
+  });
+  const stage = created.body.data.milestone;
+  const guest = await connect();
+  const owner = await connect(business);
+  const events: { type: string; invalidate: string[] }[] = [];
+  const ownerEvents: { type: string; invalidate: string[] }[] = [];
+  guest.on('invalidate', (event) => events.push(event));
+  owner.on('invalidate', (event) => ownerEvents.push(event));
+  const submitted = await post(token, `/milestones/${stage.id}/evidence`, {
+    expectedVersion: stage.version,
+    evidenceUrl: 'https://github.com/example/private-work',
+    description: 'Личные материалы команды',
+  });
+  expect(submitted.status).toBe(200);
+  await expect.poll(() => events.length, { timeout: 1000 }).toBe(1);
+  expect(events[0]).toMatchObject({ type: 'milestone.changed', taskId });
+  await expect.poll(() => ownerEvents.length, { timeout: 1000 }).toBe(1);
+  expect(ownerEvents[0]!.invalidate).toContain('milestone');
+  const returned = await post(business, `/milestones/${stage.id}/decision`, {
+    expectedVersion: submitted.body.data.milestone.version,
+    decision: 'return',
+    feedback: 'Приватный комментарий бизнеса',
+  });
+  expect(returned.status).toBe(200);
+  await expect.poll(() => events.length, { timeout: 1000 }).toBe(2);
+  expect(events[1]!.type).toBe('milestone.decided');
+  expect(JSON.stringify(events)).not.toMatch(/Личные материалы|Приватный комментарий|private-work/);
+  expect(
+    (await request(runtime.app).get('/api/v1/catalog')).body.data.world.stations[0].pendingMilestones,
+  ).toBe(0);
+  expect((await request(runtime.app).get(`/api/v1/milestones/${stage.id}`)).status).toBe(401);
 });
