@@ -1,6 +1,6 @@
-// Аватар игрока: персонаж Kenney Mini + общий стиль команды (кепка цвета команды, кристалл-символ над головой,
-// кольцо под ногами; у своей команды — двойное яркое кольцо). Анимация выбирается функцией clip() каждый кадр.
-// Если модель не загрузилась — простая фигура того же цвета.
+// Player avatar: a Kenney Mini character + a shared team style (cap in the team color, a crystal symbol above the head,
+// a ring underfoot; teammates get a bright double ring). The animation is chosen by clip() every frame.
+// If the model fails to load — a simple figure of the same color.
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, useAnimations, useGLTF } from '@react-three/drei';
@@ -11,7 +11,7 @@ import { characterUrl } from '../assets/assetRegistry';
 
 export const HEIGHT = 1.8;
 
-/** Имена клипов из GLB Kenney Mini Characters (проверены по файлу). Эмоции — ближайшие доступные позы. */
+/** Clip names from the Kenney Mini Characters GLB (checked against the file). Emotes use the closest available poses. */
 export type Clip = 'idle' | 'walk' | 'sprint' | 'sit' | 'jump' | 'crouch' | 'pick-up' | 'emote-yes' | 'emote-no' | 'interact-right' | 'interact-left' | 'holding-right' | 'holding-both';
 
 function Character({ url, clip, tint }: { url: string; clip: () => Clip; tint: string | null }) {
@@ -28,7 +28,7 @@ function Character({ url, clip, tint }: { url: string; clip: () => Clip; tint: s
     return { s, top: box.max.y, h: size.y };
   }, [scene]);
 
-  // кепка цвета команды на кости головы — «одинаковый элемент облика» у всех участников команды
+  // a team-colored cap on the head bone — a "shared look element" for all team members
   useLayoutEffect(() => {
     scene.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.frustumCulled = false; } });
     if (!tint) return;
