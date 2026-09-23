@@ -88,11 +88,11 @@ interface AvatarProps {
   presence?: string;
   demo?: boolean;
   clip: () => Clip;
-  /** позиция для LOD таблички (мир) */
+  /** position for nameplate LOD (world) */
   worldPos: React.MutableRefObject<THREE.Vector3>;
 }
 
-/** Табличка имени: у своей команды видна дальше; вдали упрощается до точки, затем скрывается. */
+/** Nameplate: visible from farther away for teammates; at a distance it shrinks to a dot, then hides. */
 export function PlayerAvatar({ avatarPreset, teamColor, teamName, displayName, relation, presence, demo, clip, worldPos }: AvatarProps) {
   const tag = useRef<HTMLDivElement>(null);
   const gem = useRef<THREE.Mesh>(null);
@@ -114,7 +114,7 @@ export function PlayerAvatar({ avatarPreset, teamColor, teamName, displayName, r
       <Safe fallback={<Fallback color={teamColor} />}>
         <Character url={characterUrl(avatarPreset)} clip={clip} tint={hasTeam ? teamColor : null} />
       </Safe>
-      {/* маркер под ногами */}
+      {/* marker underfoot */}
       <mesh rotation-x={-Math.PI / 2} position-y={0.24}>
         <ringGeometry args={[0.55, teammate || relation === 'self' ? 0.78 : 0.68, 32]} />
         <meshBasicMaterial color={teamColor} transparent opacity={0.9} toneMapped={false} />
@@ -125,7 +125,7 @@ export function PlayerAvatar({ avatarPreset, teamColor, teamName, displayName, r
           <meshBasicMaterial color={teamColor} transparent opacity={0.55} toneMapped={false} />
         </mesh>
       )}
-      {/* символ команды */}
+      {/* team symbol */}
       {hasTeam && (
         <mesh ref={gem} position-y={2.25}>
           <octahedronGeometry args={[0.13, 0]} />
@@ -135,10 +135,10 @@ export function PlayerAvatar({ avatarPreset, teamColor, teamName, displayName, r
       <Html position={[0, 2.55, 0]} center zIndexRange={[teammate ? 24 : 21, 0]} style={{ pointerEvents: 'none' }}>
         <div ref={tag} className={`nameplate ${relation} mini`} data-lod="mini" style={{ ['--tc' as string]: teamColor }}>
           <span className="np-dot" data-p={presence ?? 'online'} />
-          <b>{relation === 'self' ? 'Вы' : displayName}</b>
+          <b>{relation === 'self' ? 'You' : displayName}</b>
           {hasTeam && <span className="np-team"><i>{initial}</i>{teamName}</span>}
-          {relation === 'business' && <span className="np-team biz">бизнес</span>}
-          {demo && <span className="np-demo">демо</span>}
+          {relation === 'business' && <span className="np-team biz">business</span>}
+          {demo && <span className="np-demo">demo</span>}
         </div>
       </Html>
     </group>
