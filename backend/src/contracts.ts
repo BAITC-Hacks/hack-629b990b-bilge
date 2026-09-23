@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
 export const text = z.string().trim().max(4000);
-export const nonempty = text.min(1, 'Заполните поле');
+export const nonempty = text.min(1, 'This field is required');
 export const safeUrl = z
   .string()
   .trim()
   .max(2000)
-  .url('Укажите полную ссылку')
+  .url('Enter a full URL')
   .refine((value) => {
     try {
       const url = new URL(value);
@@ -14,7 +14,7 @@ export const safeUrl = z
     } catch {
       return false;
     }
-  }, 'Нужна HTTP(S)-ссылка без логина и пароля');
+  }, 'An HTTP(S) URL without a username or password is required');
 
 export const fieldsSchema = z
   .object({
