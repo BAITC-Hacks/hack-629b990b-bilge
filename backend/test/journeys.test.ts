@@ -19,9 +19,9 @@ export const fakeAi: AiProvider = {
       warning: null,
       missingFields,
       questions: [
-        { field: 'dataSource', text: 'Какие данные о продажах доступны?' },
-        { field: 'expectedResult', text: 'Какой результат ожидается от команды?' },
-        { field: 'acceptanceCriteria', text: 'Как вы будете принимать результат?' },
+        { field: 'dataSource', text: 'What sales data is available?' },
+        { field: 'expectedResult', text: 'What result do you expect from the team?' },
+        { field: 'acceptanceCriteria', text: 'How will you accept the result?' },
       ],
     };
   },
@@ -29,8 +29,8 @@ export const fakeAi: AiProvider = {
     return {
       mode: 'stub',
       warning: null,
-      summary: 'Нужна проверка бизнеса',
-      checks: ['Проверьте критерий приёмки'],
+      summary: 'Business review required',
+      checks: ['Check the acceptance criterion'],
     };
   },
 };
@@ -41,26 +41,26 @@ export const fakeGit: GitProvider = {
       status: 'mock',
       url,
       title: 'Demo',
-      summary: 'Тестовые материалы',
+      summary: 'Test materials',
       facts: [],
-      warning: 'Мок',
+      warning: 'Mock',
     };
   },
 };
 const complete = {
   ...emptyFields(),
-  title: 'Снижение списаний кафе',
-  industry: 'Общепит',
-  context: 'В кафе много непроданной еды',
-  need: 'Уменьшить списания',
-  users: 'Менеджеры кафе',
+  title: 'Reducing cafe write-offs',
+  industry: 'Food service',
+  context: 'The cafe has a lot of unsold food',
+  need: 'Reduce write-offs',
+  users: 'Cafe managers',
   dataAvailability: 'available',
-  dataSource: 'CSV продаж за три месяца',
-  expectedResult: 'Прототип прогноза закупок',
-  acceptanceCriteria: 'Загрузить CSV и показать прогноз по каждому блюду',
-  constraints: 'Две недели, без персональных данных',
+  dataSource: 'Sales CSV for three months',
+  expectedResult: 'A purchase forecast prototype',
+  acceptanceCriteria: 'Upload a CSV and show a forecast for each dish',
+  constraints: 'Two weeks, no personal data',
   contact: 'cafe@example.test',
-  interactionFormat: 'Две консультации в неделю',
+  interactionFormat: 'Two consultations per week',
 };
 
 describe('BFF task and team journeys', () => {
@@ -76,7 +76,7 @@ describe('BFF task and team journeys', () => {
     for (const n of [1, 2]) {
       store.saveTeam({
         id: `team${n}`,
-        name: `Команда ${n}`,
+        name: `Team ${n}`,
         interests: [],
         skills: [],
         technologies: [],
@@ -85,12 +85,12 @@ describe('BFF task and team journeys', () => {
         confirmedPoints: 0,
       });
       auth.addUser(
-        { id: `student${n}`, role: 'team', displayName: `Команда ${n}`, teamId: `team${n}` },
+        { id: `student${n}`, role: 'team', displayName: `Team ${n}`, teamId: `team${n}` },
         `team-code-${n}`,
       );
     }
-    auth.addUser({ id: 'business', role: 'business', displayName: 'Кафе', teamId: null }, 'business-code');
-    auth.addUser({ id: 'other', role: 'business', displayName: 'Другой бизнес', teamId: null }, 'other-code');
+    auth.addUser({ id: 'business', role: 'business', displayName: 'Cafe', teamId: null }, 'business-code');
+    auth.addUser({ id: 'other', role: 'business', displayName: 'Other business', teamId: null }, 'other-code');
     business = auth.login('business-code').token;
     other = auth.login('other-code').token;
     team1 = auth.login('team-code-1').token;
@@ -105,8 +105,8 @@ describe('BFF task and team journeys', () => {
     request(runtime.app).post(`/api/v1${path}`).auth(token, { type: 'bearer' }).send(body);
   async function published() {
     const start = await post(business, '/tasks/start', {
-      rawDescription: 'В кафе много непроданной еды',
-      industry: 'Общепит',
+      rawDescription: 'The cafe has a lot of unsold food',
+      industry: 'Food service',
     });
     expect(start.status).toBe(201);
     const id = start.body.data.task.id;
@@ -127,8 +127,8 @@ describe('BFF task and team journeys', () => {
   }
   it('walks from cafe input through clarifications and preserves the official snapshot during edits', async () => {
     const start = await post(business, '/tasks/start', {
-      rawDescription: 'В кафе много непроданной еды',
-      industry: 'Общепит',
+      rawDescription: 'The cafe has a lot of unsold food',
+      industry: 'Food service',
     });
     expect(start.status).toBe(201);
     const id = start.body.data.task.id;
@@ -139,31 +139,31 @@ describe('BFF task and team journeys', () => {
     expect((await request(runtime.app).get(`/api/v1/tasks/${id}`)).status).toBe(404);
     const answers = await post(business, `/tasks/${id}/answers`, {
       expectedVersion: clarify.body.data.task.version,
-      answers: [{ field: 'expectedResult', value: 'Прототип прогноза' }],
+      answers: [{ field: 'expectedResult', value: 'A forecast prototype' }],
     });
-    expect(answers.body.data.draft.fields.expectedResult).toBe('Прототип прогноза');
+    expect(answers.body.data.draft.fields.expectedResult).toBe('A forecast prototype');
     const card = await published();
     const edit = await post(business, `/tasks/${card.task.id}/draft`, {
       expectedVersion: card.task.version,
-      fields: { title: 'Секретное название', acceptanceCriteria: '' },
+      fields: { title: 'Secret title', acceptanceCriteria: '' },
     });
     expect(edit.body.data.officialScore.value).toBe(100);
     expect(edit.body.data.forecast.value).toBe(85);
     const detail = await request(runtime.app).get(`/api/v1/tasks/${card.task.id}`);
     expect(detail.body.data.card.fields.title).toBe(complete.title);
-    expect(JSON.stringify(detail.body)).not.toContain('Секретное название');
+    expect(JSON.stringify(detail.body)).not.toContain('Secret title');
     const confirm = await post(business, `/tasks/${card.task.id}/confirm`, {
       expectedVersion: edit.body.data.task.version,
     });
     expect(confirm.body.data.officialScore.value).toBe(85);
     expect(
       (await request(runtime.app).get(`/api/v1/tasks/${card.task.id}`)).body.data.card.fields.title,
-    ).toBe('Секретное название');
+    ).toBe('Secret title');
   });
   it('resumes questions one by one after a reload and keeps saved answers editable', async () => {
     const start = await post(business, '/tasks/start', {
-      rawDescription: 'Списания кафе',
-      industry: 'Общепит',
+      rawDescription: 'Cafe write-offs',
+      industry: 'Food service',
     });
     const id = start.body.data.task.id;
     let response = await post(business, `/tasks/${id}/clarify`, { expectedVersion: 1 });
@@ -173,7 +173,7 @@ describe('BFF task and team journeys', () => {
     );
     response = await post(business, `/tasks/${id}/answers`, {
       expectedVersion: response.body.data.task.version,
-      answers: [{ field: 'dataSource', value: 'CSV продаж' }],
+      answers: [{ field: 'dataSource', value: 'Sales CSV' }],
     });
     expect(response.body.data.clarification.questions).toHaveLength(3);
     const reload = await request(runtime.app)
@@ -187,20 +187,20 @@ describe('BFF task and team journeys', () => {
     });
     expect(reload.body.data.clarification.questions[0]).toMatchObject({
       answered: true,
-      value: 'CSV продаж',
+      value: 'Sales CSV',
     });
     expect(reload.body.data.clarification.nextQuestion.field).toBe('expectedResult');
     expect(reload.body.data.nextAction.id).toBe('answer_question');
     response = await post(business, `/tasks/${id}/draft`, {
       expectedVersion: reload.body.data.task.version,
-      fields: { title: 'Сократить списания' },
+      fields: { title: 'Reduce write-offs' },
     });
     expect(response.body.data.clarification.progress.remaining).toBe(2);
     response = await post(business, `/tasks/${id}/answers`, {
       expectedVersion: response.body.data.task.version,
       answers: [
-        { field: 'expectedResult', value: 'Прототип прогноза' },
-        { field: 'acceptanceCriteria', value: 'Показать прогноз по CSV' },
+        { field: 'expectedResult', value: 'A forecast prototype' },
+        { field: 'acceptanceCriteria', value: 'Show a forecast from the CSV' },
       ],
     });
     expect(response.body.data.clarification.nextQuestion).toBeNull();
@@ -216,8 +216,8 @@ describe('BFF task and team journeys', () => {
   });
   it('skips irrelevant questions without erasing them and permits publishing partial answers', async () => {
     const start = await post(business, '/tasks/start', {
-      rawDescription: 'Списания кафе',
-      industry: 'Общепит',
+      rawDescription: 'Cafe write-offs',
+      industry: 'Food service',
     });
     const id = start.body.data.task.id;
     let response = await post(business, `/tasks/${id}/clarify`, { expectedVersion: 1 });
@@ -263,16 +263,16 @@ describe('BFF task and team journeys', () => {
   });
   it('accepts a metric and target instead of asking again for an alternative acceptance condition', async () => {
     const start = await post(business, '/tasks/start', {
-      rawDescription: 'Списания кафе',
-      industry: 'Общепит',
+      rawDescription: 'Cafe write-offs',
+      industry: 'Food service',
     });
     const id = start.body.data.task.id;
     const questions = await post(business, `/tasks/${id}/clarify`, { expectedVersion: 1 });
     const response = await post(business, `/tasks/${id}/draft`, {
       expectedVersion: questions.body.data.task.version,
       fields: {
-        dataSource: 'CSV продаж',
-        expectedResult: 'Прототип',
+        dataSource: 'Sales CSV',
+        expectedResult: 'Prototype',
         successMetric: 'MAE',
         successTarget: '5',
       },
@@ -294,9 +294,9 @@ describe('BFF task and team journeys', () => {
     const id = card.task.id;
     for (const token of [team1, team2]) {
       const response = await post(token, `/tasks/${id}/proposals`, {
-        idea: 'Прогноз спроса',
-        plan: 'Изучим данные и сравним модели',
-        estimatedTime: '2 недели',
+        idea: 'Demand forecast',
+        plan: 'We will study the data and compare models',
+        estimatedTime: '2 weeks',
         prototypeUrl: 'https://example.com/demo',
       });
       expect(response.status).toBe(201);
@@ -313,18 +313,18 @@ describe('BFF task and team journeys', () => {
       expect(res.status).toBe(200);
     }
     const phase = await post(team1, `/tasks/${id}/milestones`, {
-      title: 'Проверить прогноз',
-      acceptanceCriteria: 'Показать прогноз по тестовому CSV',
+      title: 'Check the forecast',
+      acceptanceCriteria: 'Show a forecast for the test CSV',
     });
     expect(phase.status).toBe(201);
     const m = phase.body.data.milestone;
     const submitted = await post(team1, `/milestones/${m.id}/evidence`, {
       expectedVersion: m.version,
       evidenceUrl: 'https://github.com/openai/openai-node',
-      description: 'Добавили демонстрацию прогноза',
+      description: 'Added a forecast demo',
     });
     expect(submitted.body.data.milestone.status).toBe('in_review');
-    expect(submitted.body.data.milestone.statusLabel).toBe('На проверке');
+    expect(submitted.body.data.milestone.statusLabel).toBe('Under review');
     const waiting = await request(runtime.app).get('/api/v1/catalog');
     expect(waiting.body.data.world.stations[0]).toMatchObject({
       pendingMilestones: 1,
@@ -333,8 +333,8 @@ describe('BFF task and team journeys', () => {
     const publicProgress = await request(runtime.app).get(`/api/v1/tasks/${id}`);
     expect(
       publicProgress.body.data.teamProgress.find((t: { teamId: string }) => t.teamId === 'team1'),
-    ).toMatchObject({ pendingStages: 1, approvedStages: 0, status: 'in_review', statusLabel: 'На проверке' });
-    expect(JSON.stringify(publicProgress.body)).not.toContain('Добавили демонстрацию прогноза');
+    ).toMatchObject({ pendingStages: 1, approvedStages: 0, status: 'in_review', statusLabel: 'Under review' });
+    expect(JSON.stringify(publicProgress.body)).not.toContain('Added a forecast demo');
     expect(JSON.stringify(publicProgress.body)).not.toContain('https://github.com/openai/openai-node');
     expect(submitted.body.data.milestone.actions[0].enabled).toBe(false);
     expect(
@@ -342,7 +342,7 @@ describe('BFF task and team journeys', () => {
         await post(team1, `/milestones/${m.id}/evidence`, {
           expectedVersion: submitted.body.data.milestone.version,
           evidenceUrl: 'https://example.com/new',
-          description: 'Замена во время проверки',
+          description: 'Replacement during review',
         })
       ).status,
     ).toBe(409);
@@ -350,7 +350,7 @@ describe('BFF task and team journeys', () => {
     const returned = await post(business, `/milestones/${m.id}/decision`, {
       expectedVersion: submitted.body.data.milestone.version,
       decision: 'return',
-      feedback: 'Добавьте пример проверки на CSV',
+      feedback: 'Add an example check on the CSV',
     });
     expect(returned.body.data.milestone.status).toBe('changes_requested');
     expect(
@@ -360,7 +360,7 @@ describe('BFF task and team journeys', () => {
     const revised = await post(team1, `/milestones/${m.id}/evidence`, {
       expectedVersion: returned.body.data.milestone.version,
       evidenceUrl: 'https://github.com/openai/openai-node',
-      description: 'Добавлен пример проверки на CSV',
+      description: 'Added an example check on the CSV',
     });
     const body = { expectedVersion: revised.body.data.milestone.version, decision: 'approve' };
     expect((await post(team1, `/milestones/${m.id}/decision`, body)).status).toBe(403);
@@ -384,9 +384,9 @@ describe('BFF task and team journeys', () => {
   });
   it('keeps low readiness tasks open and implements sort and filters', async () => {
     const start = await post(business, '/tasks/start', {
-      rawDescription: 'Много списаний',
-      title: 'Слабая карточка',
-      industry: 'Общепит',
+      rawDescription: 'Lots of write-offs',
+      title: 'Weak card',
+      industry: 'Food service',
     });
     const id = start.body.data.task.id;
     const c = await post(business, `/tasks/${id}/confirm`, { expectedVersion: start.body.data.task.version });
@@ -398,9 +398,9 @@ describe('BFF task and team journeys', () => {
     const filtered = await request(runtime.app).get('/api/v1/catalog?level=draft');
     expect(filtered.body.data.cards.map((x: { id: string }) => x.id)).toEqual([id]);
     const reply = await post(team1, `/tasks/${id}/proposals`, {
-      idea: 'Уточним проблему',
-      plan: 'Сначала исследуем процесс',
-      estimatedTime: 'Неделя',
+      idea: 'We will clarify the problem',
+      plan: 'First we will study the process',
+      estimatedTime: 'One week',
       prototypeUrl: 'https://example.com',
     });
     expect(reply.status).toBe(201);
@@ -409,15 +409,15 @@ describe('BFF task and team journeys', () => {
     const card = await published();
     const path = `/tasks/${card.task.id}/draft`;
     expect(
-      (await post(other, path, { expectedVersion: card.task.version, fields: { title: 'Чужая правка' } }))
+      (await post(other, path, { expectedVersion: card.task.version, fields: { title: 'Foreign edit' } }))
         .status,
     ).toBe(403);
     expect(
-      (await post(team1, path, { expectedVersion: card.task.version, fields: { title: 'Чужая правка' } }))
+      (await post(team1, path, { expectedVersion: card.task.version, fields: { title: 'Foreign edit' } }))
         .status,
     ).toBe(403);
     expect(
-      (await post(business, path, { expectedVersion: 1, fields: { title: 'Старая правка' } })).status,
+      (await post(business, path, { expectedVersion: 1, fields: { title: 'Stale edit' } })).status,
     ).toBe(409);
     const invalid = await post(business, path, {
       expectedVersion: card.task.version,
@@ -426,9 +426,9 @@ describe('BFF task and team journeys', () => {
     expect(invalid.status).toBe(422);
     expect(invalid.body.error.fieldErrors).toBeDefined();
     const malformedUrl = await post(team1, `/tasks/${card.task.id}/proposals`, {
-      idea: 'Планируем улучшение',
-      plan: 'Проверим на данных',
-      estimatedTime: 'Неделя',
+      idea: 'We plan an improvement',
+      plan: 'We will test it on data',
+      estimatedTime: 'One week',
       prototypeUrl: 'not-a-url',
     });
     expect(malformedUrl.status).toBe(422);
@@ -454,9 +454,9 @@ describe('BFF task and team journeys', () => {
     const workspace = await published();
     const id = workspace.task.id;
     const proposed = await post(team1, `/tasks/${id}/proposals`, {
-      idea: 'Прогноз',
-      plan: 'Проверим CSV',
-      estimatedTime: 'Неделя',
+      idea: 'Forecast',
+      plan: 'We will check the CSV',
+      estimatedTime: 'One week',
       prototypeUrl: 'https://example.com',
     });
     expect(proposed.status).toBe(201);
@@ -467,32 +467,32 @@ describe('BFF task and team journeys', () => {
     expect(unchanged.body.data.task.version).toBe(workspace.task.version);
     const saved = await post(business, `/tasks/${id}/draft`, {
       expectedVersion: workspace.task.version,
-      fields: { need: 'Уточнённая потребность бизнеса' },
+      fields: { need: 'Clarified business need' },
     });
     expect(saved.status).toBe(200);
-    expect(saved.body.data.draft.fields.need).toBe('Уточнённая потребность бизнеса');
+    expect(saved.body.data.draft.fields.need).toBe('Clarified business need');
     const conflict = await post(business, `/tasks/${id}/draft`, {
       expectedVersion: workspace.task.version,
-      fields: { need: 'Старая версия из второй вкладки' },
+      fields: { need: 'Stale version from a second tab' },
     });
     expect(conflict.status).toBe(409);
     expect(conflict.body.error.code).toBe('STALE_VERSION');
     const proposal = proposed.body.data.myProposals[0];
     await post(business, `/proposals/${proposal.id}/decision`, { expectedVersion: 1, decision: 'select' });
     const milestone = await post(team1, `/tasks/${id}/milestones`, {
-      title: 'Прототип',
-      acceptanceCriteria: 'Работа с CSV',
+      title: 'Prototype',
+      acceptanceCriteria: 'Working with the CSV',
     });
     await post(team1, `/milestones/${milestone.body.data.milestone.id}/evidence`, {
       expectedVersion: 1,
       evidenceUrl: 'https://example.com',
-      description: 'Пилот выполнен',
+      description: 'Pilot completed',
     });
     const confirm = await post(business, `/tasks/${id}/confirm`, {
       expectedVersion: saved.body.data.task.version,
     });
     expect(confirm.status).toBe(200);
-    expect(confirm.body.data.confirmedFields.need).toBe('Уточнённая потребность бизнеса');
+    expect(confirm.body.data.confirmedFields.need).toBe('Clarified business need');
   });
   it('does not discard an in-flight AI clarification because a proposal arrived', async () => {
     const workspace = await published();
@@ -514,9 +514,9 @@ describe('BFF task and team journeys', () => {
     );
     const pending = tasks.clarify(runtime.auth.resolve(business)!, id, workspace.task.version);
     await post(team1, `/tasks/${id}/proposals`, {
-      idea: 'Прогноз',
-      plan: 'Проверим CSV',
-      estimatedTime: 'Неделя',
+      idea: 'Forecast',
+      plan: 'We will check the CSV',
+      estimatedTime: 'One week',
       prototypeUrl: 'https://example.com',
     });
     release();
@@ -525,9 +525,9 @@ describe('BFF task and team journeys', () => {
   it('deduplicates retries but accepts distinct proposals from the same team', async () => {
     const card = await published();
     const body = {
-      idea: 'Первая идея',
-      plan: 'План работы',
-      estimatedTime: 'Две недели',
+      idea: 'First idea',
+      plan: 'Work plan',
+      estimatedTime: 'Two weeks',
       prototypeUrl: 'https://example.com',
     };
     for (let n = 0; n < 2; n++)
@@ -541,12 +541,12 @@ describe('BFF task and team journeys', () => {
       ).toBe(201);
     expect(store.all('proposals')).toHaveLength(1);
     expect(
-      (await post(team1, `/tasks/${card.task.id}/proposals`, { ...body, idea: 'Вторая идея' })).status,
+      (await post(team1, `/tasks/${card.task.id}/proposals`, { ...body, idea: 'Second idea' })).status,
     ).toBe(201);
     expect(store.all('proposals')).toHaveLength(2);
     expect(
       (
-        await post(team1, `/tasks/${card.task.id}/proposals`, { ...body, idea: 'Изменённая идея' }).set(
+        await post(team1, `/tasks/${card.task.id}/proposals`, { ...body, idea: 'Changed idea' }).set(
           'Idempotency-Key',
           'proposal-retry-1',
         )
@@ -554,7 +554,7 @@ describe('BFF task and team journeys', () => {
     ).toBe(409);
   });
   it('creates and joins a team with the same code and revokes sessions on logout', async () => {
-    const created = await request(runtime.app).post('/api/v1/teams/start').send({ name: 'Новая команда' });
+    const created = await request(runtime.app).post('/api/v1/teams/start').send({ name: 'New team' });
     expect(created.status).toBe(201);
     const login = await request(runtime.app)
       .post('/api/v1/session/start')
