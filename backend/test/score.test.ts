@@ -36,11 +36,16 @@ describe('confirmed readiness rules', () => {
   });
   it('rejects placeholder text and lowers score when useful information is removed', () => {
     expect(
+      calculateScore({ ...emptyFields(), context: "don't know", need: 'will clarify later', users: 'TODO' })
+        .value,
+    ).toBe(0);
+    // Russian placeholders stay recognised, since users may type either language.
+    expect(
       calculateScore({ ...emptyFields(), context: 'не знаю', need: 'потом уточню', users: 'TODO' }).value,
     ).toBe(0);
     const fields = {
       ...emptyFields(),
-      acceptanceCriteria: 'Показать прогноз и таблицу фактических списаний',
+      acceptanceCriteria: 'Show the forecast and a table of actual write-offs',
     };
     expect(calculateScore(fields).value).toBe(15);
     expect(calculateScore({ ...fields, acceptanceCriteria: '' }).value).toBe(0);
@@ -51,7 +56,7 @@ describe('confirmed readiness rules', () => {
   });
   it('keeps an honest unknown answer from earning readiness points', () => {
     expect(
-      calculateScore({ ...emptyFields(), users: 'Пока не знаю', acceptanceCriteria: 'Пока не знаю!' }).value,
+      calculateScore({ ...emptyFields(), users: "I don't know yet", acceptanceCriteria: 'Not sure!' }).value,
     ).toBe(0);
   });
 });
