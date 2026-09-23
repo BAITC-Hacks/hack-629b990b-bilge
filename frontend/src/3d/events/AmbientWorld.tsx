@@ -1,5 +1,5 @@
-// Фоновая жизнь: декоративные NPC (без значков и имён — их не спутать с игроками), машины на кольцевой дороге,
-// птицы, дрон. Всё спокойное и чисто визуальное; при prefers-reduced-motion — почти неподвижно.
+// Background life: decorative NPCs (no badges or names — they can't be confused with players), cars on the ring road,
+// birds, a drone. Everything is calm and purely visual; with prefers-reduced-motion it's nearly still.
 import { useMemo, useRef, useSyncExternalStore } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useAnimations, useGLTF } from '@react-three/drei';
@@ -10,7 +10,7 @@ import { AssetModel, Safe } from '../assets/AssetModel';
 import { ROAD_IN, ROAD_OUT, type Route, type WorldLayout } from '../world/WorldLayout';
 import type { WorldEventManager } from './WorldEventManager';
 
-// ---------- путь по ломаной ----------
+// ---------- polyline path ----------
 class PathWalker {
   pts: THREE.Vector2[];
   lens: number[] = [];
@@ -18,7 +18,7 @@ class PathWalker {
   constructor(points: [number, number][], loop: boolean) {
     this.pts = points.map(([x, z]) => new THREE.Vector2(x, z));
     if (loop) this.pts.push(this.pts[0].clone());
-    else this.pts = [...this.pts, ...this.pts.slice(0, -1).reverse()]; // туда и обратно
+    else this.pts = [...this.pts, ...this.pts.slice(0, -1).reverse()]; // there and back
     for (let i = 1; i < this.pts.length; i++) { const l = this.pts[i].distanceTo(this.pts[i - 1]); this.lens.push(l); this.total += l; }
   }
   at(s: number, out: THREE.Vector2): number {
@@ -66,7 +66,7 @@ function Npc({ url, route, offset, speed, events, group: inGroup, reduced }: { u
     if (reduced) { play('idle'); walker.at(s.current, tmp); root.current.position.set(tmp.x, 0.18, tmp.y); return; }
     if (now < p.until) { play(p.clip); return; }
     if (now > p.next && !inGroup) {
-      // иногда останавливается: осмотреться, кивнуть, «проверить телефон»
+      // sometimes stops: looks around, nods, "checks the phone"
       const clips = ['idle', 'emote-yes', 'emote-no', 'holding-both'];
       p.clip = clips[Math.floor(Math.random() * clips.length)];
       p.until = now + 2000 + Math.random() * 3500;
@@ -84,7 +84,7 @@ function Npc({ url, route, offset, speed, events, group: inGroup, reduced }: { u
   return <group ref={root}><primitive object={scene} scale={scale} /></group>;
 }
 
-/** Сидящий NPC на лавочке. */
+/** An NPC sitting on a bench. */
 function SittingNpc({ url, x, z, r }: { url: string; x: number; z: number; r: number }) {
   const gltf = useGLTF(url);
   const scene = useMemo(() => cloneSkinned(gltf.scene) as THREE.Group, [gltf.scene]);
@@ -95,7 +95,7 @@ function SittingNpc({ url, x, z, r }: { url: string; x: number; z: number; r: nu
   return <group ref={root} position={[x, 0.1, z]} rotation-y={r + Math.PI}><primitive object={scene} scale={asset(NPC_CHARACTERS[0]).scale} /></group>;
 }
 
-// ---------- машины ----------
+// ---------- cars ----------
 function roadLoop(d: number, clockwise: boolean): Route {
   const pts: [number, number][] = [];
   const r = 7, h = d;
@@ -119,7 +119,7 @@ function Car({ id, lane, offset, speed, player, event, events }: { id: string; l
     if (event && !events.isActive('vehicle')) { root.current.visible = false; return; }
     root.current.visible = true;
     const dt = Math.min(rawDt, 0.05);
-    // притормаживает перед игроком на дороге
+    // slows down for a player on the road
     walker.at(s.current + 5, ahead);
     const block = Math.hypot(ahead.x - player.current.x, ahead.y - player.current.z) < 3.2;
     v.current += ((block ? 0 : speed) - v.current) * Math.min(1, dt * 2.5);
@@ -131,7 +131,7 @@ function Car({ id, lane, offset, speed, player, event, events }: { id: string; l
   return <group ref={root}><Safe><AssetModel id={id} /></Safe></group>;
 }
 
-// ---------- птицы и дрон ----------
+// ---------- birds and drone ----------
 function Birds({ events, reduced }: { events: WorldEventManager; reduced: boolean }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const N = 9;
@@ -205,7 +205,7 @@ export function AmbientWorld({ layout, events, reduced, player }: { layout: Worl
         <Npc url={npcUrls[1]} route={route('lane-e')} offset={0.7} speed={1.2} events={events} reduced={reduced} />
         <Npc url={npcUrls[2]} route={route('south-axis')} offset={0.2} speed={1.3} events={events} reduced={reduced} />
         {benchSeats.map((b, i) => <SittingNpc key={i} url={npcUrls[(i + 3) % npcUrls.length]} x={b.x} z={b.z} r={b.r} />)}
-        {/* событие: группа прохожих через Triumph Plaza */}
+        {/* event: a group of passers-by crossing Triumph Plaza */}
         {[0, 0.012, 0.024].map((o, i) => <Npc key={`g${i}`} url={npcUrls[(i + 1) % npcUrls.length]} route={route('south-axis')} offset={o} speed={1.5} events={events} group reduced={reduced} />)}
       </Safe>
       {!reduced && (
