@@ -65,7 +65,7 @@ describe('bounded GitHub materials', () => {
         ],
       });
       expect(Number.isNaN(Date.parse(result.snapshot!.inspectedAt))).toBe(false);
-      expect(result.snapshot?.warnings.join(' ')).toMatch(/аудит/i);
+      expect(result.snapshot?.warnings.join(' ')).toMatch(/audit/i);
       expect(fetch.mock.calls.map(([url]) => url)).toContain(`${base}/readme?ref=${sha}`);
       expect(fetch.mock.calls.map(([url]) => url)).not.toContain(`${base}/readme?ref=main`);
     },
@@ -87,7 +87,7 @@ describe('bounded GitHub materials', () => {
     const fetch = github({ [`${base}/commits/main`]: () => json({}, 409) });
     const result = await createGitProvider({ fetch }).inspect('https://github.com/team/cafe');
     expect(result).toMatchObject({ status: 'verified', snapshot: null });
-    expect(result.warning).toMatch(/коммит/i);
+    expect(result.warning).toMatch(/commit/i);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
@@ -126,7 +126,7 @@ describe('bounded GitHub materials', () => {
       status: 'verified',
       snapshot: { commitSha: sha, coverage: 'metadata_only', files: [] },
     });
-    expect(result.snapshot?.warnings.join(' ')).toMatch(/изменил/i);
+    expect(result.snapshot?.warnings.join(' ')).toMatch(/PR changed/i);
   });
 
   it('discards materials if the final PR validation fails', async () => {
@@ -134,7 +134,7 @@ describe('bounded GitHub materials', () => {
     const fetch = github({ [`${base}/pulls/7`]: () => (++reads === 1 ? json(pull) : json({}, 429)) });
     const result = await createGitProvider({ fetch }).inspect('https://github.com/team/cafe/pull/7');
     expect(result.snapshot).toMatchObject({ coverage: 'metadata_only', files: [] });
-    expect(result.snapshot?.warnings.join(' ')).toMatch(/неизменност/i);
+    expect(result.snapshot?.warnings.join(' ')).toMatch(/unchanged/i);
   });
 
   it.each(['base', 'count'])(
@@ -148,7 +148,7 @@ describe('bounded GitHub materials', () => {
       const fetch = github({ [`${base}/pulls/7`]: () => json(++reads === 1 ? pull : updated) });
       const result = await createGitProvider({ fetch }).inspect('https://github.com/team/cafe/pull/7');
       expect(result.snapshot).toMatchObject({ coverage: 'metadata_only', files: [] });
-      expect(result.snapshot?.warnings.join(' ')).toMatch(/изменил/i);
+      expect(result.snapshot?.warnings.join(' ')).toMatch(/PR changed/i);
     },
   );
 
