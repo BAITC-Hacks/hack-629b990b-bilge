@@ -1,6 +1,6 @@
-// Единый реестр 3D-ассетов кампуса. Имена файлов взяты из описи ассетов (mini-inventory.txt, modern-list.txt).
-// Масштаб задан на весь набор, чтобы пропорции были согласованы: персонаж Kenney Mini ≈ 1,8 м.
-// Средневековые/фэнтезийные/деревенские модели (Mini Dungeon, Mini Arena, палатки Mini Forest) в кампусе не используются.
+// Single registry of the campus 3D assets. File names come from the asset inventories (mini-inventory.txt, modern-list.txt).
+// Scale is set per kit so proportions are consistent: a Kenney Mini character ≈ 1.8 m.
+// Medieval/fantasy/rustic models (Mini Dungeon, Mini Arena, Mini Forest tents) are not used on the campus.
 
 export type AssetCategory =
   | 'character' | 'building-mid' | 'building-tall' | 'building-far' | 'street' | 'vegetation'
@@ -10,23 +10,23 @@ export interface AssetDef {
   id: string;
   url: string;
   category: AssetCategory;
-  /** Масштаб модели (из единиц файла в метры сцены). */
+  /** Model scale (from file units to scene meters). */
   scale: number;
-  /** Радиус препятствия для игрока, м (0 — не мешает ходьбе). */
+  /** Obstacle radius for the player, m (0 — doesn't block walking). */
   collider: number;
   shadow: boolean;
 }
 
-const MINI = 2.3;   // Kenney Mini: персонаж 0,78 ед. → 1,8 м
-const CITY = 9;     // Kenney City Kit: building-a 1,29 ед. → ~11,6 м (3 этажа)
-const CAR = 1.6;    // Kenney Car Kit: sedan 2,55 ед. → ~4,1 м
-const KAY = 4.5;    // KayKit City Bits: bench 0,40 ед. → 1,8 м
+const MINI = 2.3;   // Kenney Mini: character 0.78 units → 1.8 m
+const CITY = 9;     // Kenney City Kit: building-a 1.29 units → ~11.6 m (3 floors)
+const CAR = 1.6;    // Kenney Car Kit: sedan 2.55 units → ~4.1 m
+const KAY = 4.5;    // KayKit City Bits: bench 0.40 units → 1.8 m
 
 const defs: AssetDef[] = [];
 const add = (id: string, url: string, category: AssetCategory, scale: number, collider = 0, shadow = true) =>
   defs.push({ id, url, category, scale, collider, shadow });
 
-// персонажи
+// characters
 for (const n of ['male-a', 'male-b', 'male-c', 'male-d', 'male-e', 'male-f', 'female-a', 'female-b', 'female-c', 'female-d', 'female-e', 'female-f'])
   add(`char-${n}`, `/models/mini/characters/character-${n}.glb`, 'character', MINI);
 add('char-employee', '/models/mini/market/character-employee.glb', 'character', MINI);
@@ -34,7 +34,7 @@ add('char-gamer', '/models/mini/arcade/character-gamer.glb', 'character', MINI);
 add('char-skate-boy', '/models/mini/skate/character-skate-boy.glb', 'character', MINI);
 add('char-skate-girl', '/models/mini/skate/character-skate-girl.glb', 'character', MINI);
 
-// здания: средние (рамка кварталов) и высокие (только задний план)
+// buildings: mid-rise (block frame) and tall (background only)
 for (const c of 'abcdefghijklmn') add(`bld-${c}`, `/models/city/building-${c}.glb`, 'building-mid', CITY, 0, true);
 for (const c of 'abcde') add(`tower-${c}`, `/models/city/building-skyscraper-${c}.glb`, 'building-tall', CITY, 0, false);
 for (const c of 'abcdefghijklm') add(`far-${c}`, `/models/city/low-detail-building-${c}.glb`, 'building-far', CITY, 0, false);
@@ -45,7 +45,7 @@ add('awning-wide', '/models/city/detail-awning-wide.glb', 'prop-decor', CITY * 0
 add('parasol-a', '/models/city/detail-parasol-a.glb', 'prop-market', CITY * 0.6, 0.6);
 add('parasol-b', '/models/city/detail-parasol-b.glb', 'prop-market', CITY * 0.6, 0.6);
 
-// улица
+// street
 add('bench', '/models/kaykit/bench.gltf', 'street', KAY);
 add('bush', '/models/kaykit/bush.gltf', 'vegetation', KAY);
 add('streetlight', '/models/kaykit/streetlight.gltf', 'street', KAY, 0.25);
@@ -56,7 +56,7 @@ add('hydrant', '/models/kaykit/firehydrant.gltf', 'street', KAY);
 add('dumpster', '/models/kaykit/dumpster.gltf', 'street', KAY, 1.2);
 add('watertower', '/models/kaykit/watertower.gltf', 'prop-decor', KAY * 2.2, 0, false);
 
-// растения и камни
+// plants and rocks
 add('tree', '/models/mini/forest/tree.glb', 'vegetation', MINI, 0.5);
 add('tree-high', '/models/mini/forest/tree-high.glb', 'vegetation', MINI, 0.5);
 add('tree-round', '/models/mini/arena/tree.glb', 'vegetation', MINI, 0.5);
@@ -65,13 +65,13 @@ add('patch-grass', '/models/mini/forest/patch-grass.glb', 'vegetation', MINI, 0,
 add('rocks-low', '/models/mini/forest/rocks-low.glb', 'prop-decor', MINI, 0.8);
 add('stones', '/models/mini/forest/stones.glb', 'prop-decor', MINI);
 
-// транспорт
+// vehicles
 for (const n of ['sedan', 'taxi', 'van', 'suv', 'delivery', 'hatchback-sports', 'police', 'ambulance', 'garbage-truck', 'truck'])
   add(`car-${n}`, `/models/car/${n}.glb`, 'vehicle', CAR, 1.6);
 add('cone', '/models/car/cone.glb', 'prop-decor', CAR * 0.9);
 add('crate', '/models/car/box.glb', 'prop-decor', CAR * 1.2, 0.5);
 
-// магазин, технологии, скейт-площадка
+// shop, tech, skate park
 add('display-fruit', '/models/mini/market/display-fruit.glb', 'prop-market', MINI, 0.6);
 add('display-bread', '/models/mini/market/display-bread.glb', 'prop-market', MINI, 0.6);
 add('shopping-cart', '/models/mini/market/shopping-cart.glb', 'prop-market', MINI);
@@ -96,15 +96,15 @@ export type AssetId = keyof typeof ASSETS & string;
 
 export function asset(id: string): AssetDef {
   const a = ASSETS[id];
-  if (!a) throw new Error(`Ассет не найден в реестре: ${id}`);
+  if (!a) throw new Error(`Asset not found in registry: ${id}`);
   return a;
 }
 export function assetsBy(category: AssetCategory): AssetDef[] {
   return defs.filter((d) => d.category === category);
 }
-/** Облик игрока (ключ из src/shared/world.ts AVATARS) → модель. */
+/** Player look (key from src/shared/world.ts AVATARS) → model. */
 export function characterUrl(avatarPreset: string): string {
   return (ASSETS[`char-${avatarPreset}`] ?? ASSETS['char-male-a']).url;
 }
-/** Модели для декоративных NPC — отличаются от игроков отсутствием значка команды и имени. */
+/** Models for decorative NPCs — they differ from players by having no team badge or name. */
 export const NPC_CHARACTERS = ['char-employee', 'char-gamer', 'char-skate-boy', 'char-skate-girl'];
