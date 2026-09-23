@@ -37,7 +37,7 @@ const object = (properties: Record<string, Schema>, required = Object.keys(prope
 });
 const screen = (name: string, type: string, properties: Record<string, Schema>): Schema => ({
   ...object({ screen: { const: name, type: 'string' }, ...properties }),
-  description: `Экран BFF. Точный TypeScript-контракт: ${type} в backend/client/index.ts.`,
+  description: `BFF screen. Exact TypeScript contract: ${type} in backend/client/index.ts.`,
   'x-typescript-type': type,
 });
 const freeObject: Schema = { type: 'object', additionalProperties: true };
@@ -87,7 +87,7 @@ const schemas: Record<string, Schema> = {
         team: ref('Team'),
         code: {
           type: 'string',
-          description: 'Показывается только при создании. Сохраните для следующего входа.',
+          description: 'Shown only on creation. Save it for the next sign-in.',
         },
       }),
     ],
@@ -119,7 +119,7 @@ const schemas: Record<string, Schema> = {
     version: {
       ...integer,
       description:
-        'Ревизия всей активности задачи. Для expectedVersion редактора используйте workspace.task.version.',
+        'Revision of all task activity. For the editor expectedVersion use workspace.task.version.',
     },
     title: string,
     industry: string,
@@ -133,7 +133,7 @@ const schemas: Record<string, Schema> = {
     approvedMilestones: integer,
     pendingMilestones: {
       ...integer,
-      description: 'Этапы выбранных команд на проверке. Маркер ожидания для 2D/3D; очки ещё не начислены.',
+      description: 'Milestones of selected teams under review. Pending marker for 2D/3D; no points awarded yet.',
     },
     publishedAt: nullable(string),
     actions,
@@ -172,7 +172,7 @@ const schemas: Record<string, Schema> = {
     coverage: {
       type: 'string',
       enum: ['complete', 'partial', 'metadata_only'],
-      description: 'Полнота доступной выборки материалов. Не означает аудит всего репозитория.',
+      description: 'Completeness of the available material sample. Does not mean a full repository audit.',
     },
     files: array(
       object({
@@ -305,7 +305,7 @@ const schemas: Record<string, Schema> = {
     filters: {
       ...freeObject,
       description:
-        'Текущие search, industry, level (если выбран), page, pageSize, worldPage; варианты industries/levels; sort=score_desc.',
+        'Current search, industry, level (if selected), page, pageSize, worldPage; industries/levels options; sort=score_desc.',
     },
     cards: array(ref('Card')),
     pagination: object({ page: integer, pageSize: integer, total: integer, totalPages: integer }),
@@ -373,7 +373,7 @@ const schemas: Record<string, Schema> = {
       id: string,
       version: {
         ...integer,
-        description: 'Версия редактора для expectedVersion. Отклики и этапы её не меняют.',
+        description: 'Editor version for expectedVersion. Proposals and milestones do not change it.',
       },
       publicationStatus: { type: 'string', enum: ['draft', 'published'] },
       rawDescription: string,
@@ -529,29 +529,29 @@ const schemas: Record<string, Schema> = {
 const auth = {
   guest: {
     security: [{}, { bearerAuth: [] }] as Security,
-    description: 'Гость или участник с Bearer-сессией; при неверном/истёкшем токене — 401.',
+    description: 'Guest or member with a Bearer session; an invalid/expired token returns 401.',
   },
-  public: { security: [] as Security, description: 'Публичный маршрут, сессия не требуется.' },
+  public: { security: [] as Security, description: 'Public route, no session required.' },
   member: {
     security: [{ bearerAuth: [] }] as Security,
-    description: 'Нужна действующая Bearer-сессия business или team.',
+    description: 'Requires a valid business or team Bearer session.',
   },
   owner: {
     security: [{ bearerAuth: [] }] as Security,
-    description: 'Только роль business и владелец задачи; иначе 403.',
+    description: 'Business role and task owner only; otherwise 403.',
   },
-  business: { security: [{ bearerAuth: [] }] as Security, description: 'Только роль business; иначе 403.' },
-  team: { security: [{ bearerAuth: [] }] as Security, description: 'Только роль team; иначе 403.' },
+  business: { security: [{ bearerAuth: [] }] as Security, description: 'Business role only; otherwise 403.' },
+  team: { security: [{ bearerAuth: [] }] as Security, description: 'Team role only; otherwise 403.' },
   participant: {
     security: [{ bearerAuth: [] }] as Security,
-    description: 'Владелец задачи (business) или команда этапа (team); остальные участники получают 403.',
+    description: 'Task owner (business) or milestone team (team); other members get 403.',
   },
 };
 const idParameter: Parameter = {
   name: 'id',
   in: 'path',
   required: true,
-  description: 'ID задачи, отклика или этапа из ответа API.',
+  description: 'Task, proposal or milestone ID from an API response.',
   schema: string,
 };
 const retryParameter: Parameter = {
@@ -559,16 +559,16 @@ const retryParameter: Parameter = {
   in: 'header',
   required: false,
   description:
-    'Сохраните случайный ключ до запроса и повторите его с тем же телом при потере ответа. Новое действие — новый ключ. Другое тело с прежним ключом даёт 409 IDEMPOTENCY_CONFLICT.',
+    'Save a random key before the request and resend it with the same body if the response is lost. A new action needs a new key. A different body with the same key returns 409 IDEMPOTENCY_CONFLICT.',
   schema: { type: 'string', minLength: 8, maxLength: 120, pattern: '^[A-Za-z0-9_-]+$' },
 };
 const queryDescriptions: Record<string, string> = {
-  search: 'Поиск по подтверждённым названию, контексту и потребности.',
-  industry: 'Точное значение отрасли из filters.industries.',
-  level: 'Уровень официальной готовности.',
-  page: 'Страница списка карточек, начиная с 1.',
-  pageSize: 'Карточек в списке, от 1 до 50.',
-  worldPage: 'Страница мира; отдельная пагинация по 5 станций.',
+  search: 'Search by confirmed title, context and need.',
+  industry: 'Exact industry value from filters.industries.',
+  level: 'Official readiness level.',
+  page: 'Card list page, starting at 1.',
+  pageSize: 'Cards per list page, from 1 to 50.',
+  worldPage: 'World page; separate pagination of 5 stations.',
 };
 const catalogParameters: Parameter[] = Object.entries(commands.catalog.shape).map(([name, schema]) => ({
   name,
@@ -622,171 +622,171 @@ function route(
       : {}),
     responses: {
       [options.created ? '201' : '200']: {
-        description: `Обновлённые данные ${result} в data; feedback.message для сообщения интерфейса.`,
+        description: `Updated ${result} data in data; feedback.message for the UI message.`,
         content: { 'application/json': { schema: resultSchema } },
       },
-      '400': errorResponse('Невалидный JSON (INVALID_JSON).'),
+      '400': errorResponse('Invalid JSON (INVALID_JSON).'),
       '401': errorResponse(
-        'Нет сессии, код неверен или сессия истекла. При recovery=sign_in предложите вход.',
+        'No session, wrong code or expired session. With recovery=sign_in, offer sign-in.',
       ),
-      '403': errorResponse('Не разрешены роль, владелец, выбор команды или Origin.'),
-      '404': errorResponse('Сущность не найдена или не опубликована.'),
+      '403': errorResponse('Role, ownership, team selection or Origin not allowed.'),
+      '404': errorResponse('Entity not found or not published.'),
       '409': errorResponse(
-        'Конфликт версии/состояния. STALE_VERSION + recovery=refetch: загрузите экран, сохраните локальные правки для повторного применения.',
+        'Version/state conflict. STALE_VERSION + recovery=refetch: reload the screen and keep local edits to reapply.',
       ),
-      '413': errorResponse('Тело больше 64 KB.'),
-      '422': errorResponse('Ошибки полей в error.fieldErrors; точки разделяют вложенные поля.'),
-      '429': errorResponse('Лимит запросов. recovery=retry_later.'),
-      '500': errorResponse('Внутренняя ошибка. Сообщите meta.requestId для диагностики.'),
+      '413': errorResponse('Body larger than 64 KB.'),
+      '422': errorResponse('Field errors in error.fieldErrors; dots separate nested fields.'),
+      '429': errorResponse('Rate limit. recovery=retry_later.'),
+      '500': errorResponse('Internal error. Report meta.requestId for diagnostics.'),
     },
   };
 }
 
-route('get', '/health', 'health', 'Проверить сервер и базу', 'Health', 'public');
-route('get', '/bootstrap', 'bootstrap', 'Начальное состояние интерфейса', 'BootstrapView', 'guest');
-route('post', '/session/start', 'startSession', 'Войти по коду', 'Session', 'public', {
+route('get', '/health', 'health', 'Check the server and database', 'Health', 'public');
+route('get', '/bootstrap', 'bootstrap', 'Initial interface state', 'BootstrapView', 'guest');
+route('post', '/session/start', 'startSession', 'Sign in with a code', 'Session', 'public', {
   body: 'session',
   description:
-    'Коды подготовленных профилей находятся в локальном backend/demo-accounts.local.json после seed. Ответ содержит token и expiresAt; хранение токена выбирает клиент.',
+    'Codes for prepared profiles are in the local backend/demo-accounts.local.json after seeding. The response contains token and expiresAt; the client chooses how to store the token.',
 });
-route('post', '/session/end', 'endSession', 'Завершить текущую сессию', 'SignedOut', 'member', {
-  description: 'Удалите токен текущей вкладки после успешного ответа; привязанные сокеты отключаются.',
+route('post', '/session/end', 'endSession', 'End the current session', 'SignedOut', 'member', {
+  description: 'Delete the current tab token after a successful response; bound sockets are disconnected.',
 });
-route('post', '/teams/start', 'createTeam', 'Создать команду и выдать код', 'TeamCreated', 'public', {
+route('post', '/teams/start', 'createTeam', 'Create a team and issue a code', 'TeamCreated', 'public', {
   body: 'createTeam',
   created: true,
   description:
-    'Код возвращается только здесь. Сохраните его. Команда сразу получает сессию. Этот маршрут не поддерживает Idempotency-Key: повтор может создать ещё одну команду.',
+    'The code is returned only here. Save it. The team gets a session immediately. This route does not support Idempotency-Key: a retry may create another team.',
 });
-route('get', '/catalog', 'catalog', 'Каталог и пять станций мира', 'CatalogView', 'guest', {
+route('get', '/catalog', 'catalog', 'Catalog and five world stations', 'CatalogView', 'guest', {
   parameters: catalogParameters,
   description:
-    'Только опубликованные подтверждённые снимки. Список сортируется по официальному баллу; мир — по времени публикации. Пагинации независимы.',
+    'Only published confirmed snapshots. The list is sorted by official score; the world by publication time. The paginations are independent.',
 });
-route('get', '/dashboard', 'dashboard', 'Личный кабинет текущей роли', 'DashboardView', 'member');
-route('get', '/scoreboard', 'scoreboard', 'Подтверждённые очки команд', 'ScoreboardView', 'public', {
-  description: 'Только name, confirmedPoints, rank; без контактов и материалов этапа.',
+route('get', '/dashboard', 'dashboard', 'Dashboard for the current role', 'DashboardView', 'member');
+route('get', '/scoreboard', 'scoreboard', 'Confirmed team points', 'ScoreboardView', 'public', {
+  description: 'Only name, confirmedPoints, rank; no contacts or milestone materials.',
 });
-route('get', '/world', 'world', 'Команды и достижения для 3D-мира', 'WorldView', 'public', {
+route('get', '/world', 'world', 'Teams and achievements for the 3D world', 'WorldView', 'public', {
   description:
-    'Публично: цвет и облик команд для их баз, подтверждённые очки и последние подтверждённые бизнесом результаты (Hall of Achievements). Присутствие игроков идёт по Socket.IO: world.player.join/move/action/interact/leave → world.player.join/update/state/action/leave; world.triumph — только после первого подтверждения этапа.',
+    'Public: team color and look for their bases, confirmed points and the latest business-approved results (Hall of Achievements). Player presence goes over Socket.IO: world.player.join/move/action/interact/leave → world.player.join/update/state/action/leave; world.triumph only after the first approval of a milestone.',
 });
-route('get', '/snapshot', 'snapshot', 'Снимок основных экранов', 'SnapshotView', 'guest', {
+route('get', '/snapshot', 'snapshot', 'Snapshot of the main screens', 'SnapshotView', 'guest', {
   description:
-    'Агрегирует bootstrap, catalog с фильтрами по умолчанию, dashboard (null для гостя) и scoreboard. После reconnect обновите также открытый детальный экран.',
+    'Aggregates bootstrap, catalog with default filters, dashboard (null for a guest) and scoreboard. After a reconnect also refresh the open detail screen.',
 });
-route('post', '/tasks/start', 'startTask', 'Сохранить исходное описание', 'WorkspaceView', 'business', {
+route('post', '/tasks/start', 'startTask', 'Save the original description', 'WorkspaceView', 'business', {
   body: 'start',
   created: true,
   idempotent: true,
-  description: 'Создаёт личный черновик. rawDescription неизменяемо; исправления живут в draft.fields.',
+  description: 'Creates a private draft. rawDescription is immutable; corrections live in draft.fields.',
 });
-route('get', '/tasks/{id}', 'task', 'Карточка опубликованной задачи', 'DetailView', 'guest', {
+route('get', '/tasks/{id}', 'task', 'Published task card', 'DetailView', 'guest', {
   description:
-    'Черновик возвращает 404 даже владельцу: для редактирования используйте workspace. myProposals содержит только отклики текущей команды.',
+    'A draft returns 404 even to its owner: use workspace for editing. myProposals contains only the current team proposals.',
 });
-route('get', '/tasks/{id}/workspace', 'workspace', 'Конструктор задачи', 'WorkspaceView', 'owner');
-route('get', '/tasks/{id}/review', 'reviewDesk', 'Сравнение откликов и результатов', 'ReviewView', 'owner');
+route('get', '/tasks/{id}/workspace', 'workspace', 'Task builder', 'WorkspaceView', 'owner');
+route('get', '/tasks/{id}/review', 'reviewDesk', 'Compare proposals and results', 'ReviewView', 'owner');
 route(
   'post',
   '/tasks/{id}/analyze',
   'analyzeTask',
-  'Разобрать описание на предложения с цитатами',
+  'Break the description into quoted suggestions',
   'WorkspaceView',
   'owner',
   {
     body: 'version',
     description:
-      'AI предлагает дословные значения для пустых полей. Проверка и выбор пользователя обязательны. Ответ содержит analysis, quality и приватную aiRuns. Заполненные поля не меняются.',
+      'AI suggests verbatim values for empty fields. User review and selection are required. The response contains analysis, quality and private aiRuns. Filled fields are not changed.',
   },
 );
 route(
   'post',
   '/tasks/{id}/suggestions/apply',
   'applySuggestions',
-  'Добавить выбранные сведения в черновик',
+  'Add selected details to the draft',
   'WorkspaceView',
   'owner',
   {
     body: 'applySuggestions',
     description:
-      'Передайте analysisId и выбранные suggestionIds из актуального workspace. Пустой список отклоняет все предложения. Выбор завершает анализ; повтор или применение после правок возвращает конфликт. Официальные сведения меняются только после confirm.',
+      'Pass analysisId and the selected suggestionIds from the current workspace. An empty list dismisses all suggestions. A selection resolves the analysis; a retry or applying after edits returns a conflict. Official details change only after confirm.',
   },
 );
-route('post', '/tasks/{id}/draft', 'saveDraft', 'Сохранить частичные правки', 'WorkspaceView', 'owner', {
+route('post', '/tasks/{id}/draft', 'saveDraft', 'Save partial edits', 'WorkspaceView', 'owner', {
   body: 'draft',
   description:
-    'Частичный fields объединяется с черновиком. Балл и публичные title/industry не меняются до confirm. expectedVersion берите из workspace.task.version.',
+    'Partial fields are merged into the draft. The score and public title/industry do not change until confirm. Take expectedVersion from workspace.task.version.',
 });
 route(
   'post',
   '/tasks/{id}/answers',
   'applyAnswers',
-  'Перенести ответы в черновик',
+  'Move answers into the draft',
   'WorkspaceView',
   'owner',
   {
     body: 'answers',
     description:
-      'Один или несколько ответов сохраняются вместе с прогрессом; nextQuestion указывает следующий вопрос. value: noConstraints — boolean; dataAvailability — available/none/unknown; остальные — строки. Официальный снимок ещё не меняется.',
+      'One or more answers are saved together with progress; nextQuestion points to the next question. value: noConstraints is boolean; dataAvailability is available/none/unknown; the rest are strings. The official snapshot does not change yet.',
   },
 );
 route(
   'post',
   '/tasks/{id}/clarify',
   'clarifyTask',
-  'Получить вопросы по пробелам',
+  'Get questions about gaps',
   'WorkspaceView',
   'owner',
   {
     body: 'version',
     description:
-      'Начинает новый сеанс из 3–5 вопросов с progress и nextQuestion. Для возобновления используйте GET workspace. clarification.mode/warning показывают OpenAI или резервный stub. expectedVersion берите из workspace.task.version.',
+      'Starts a new session of 3–5 questions with progress and nextQuestion. To resume, use GET workspace. clarification.mode/warning show OpenAI or the fallback stub. Take expectedVersion from workspace.task.version.',
   },
 );
-route('post', '/tasks/{id}/confirm', 'confirmTask', 'Подтвердить сведения', 'WorkspaceView', 'owner', {
+route('post', '/tasks/{id}/confirm', 'confirmTask', 'Confirm the details', 'WorkspaceView', 'owner', {
   body: 'version',
   description:
-    'Заменяет confirmedFields целиком и пересчитывает официальный балл, в том числе вниз. Завершает текущий сеанс уточнений (reviewed=true), неполные ответы допустимы. Для опубликованной задачи сразу обновляет публичную карточку.',
+    'Replaces confirmedFields entirely and recalculates the official score, including downward. Ends the current clarification session (reviewed=true); incomplete answers are allowed. For a published task it updates the public card immediately.',
 });
 route(
   'post',
   '/tasks/{id}/publish',
   'publishTask',
-  'Опубликовать подтверждённую карточку',
+  'Publish the confirmed card',
   'WorkspaceView',
   'owner',
   {
     body: 'version',
     description:
-      'Нужны подтверждённые последние изменения. Низкий балл не блокирует публикацию. Повторная публикация уже опубликованной задачи безопасна.',
+      'The latest changes must be confirmed. A low score does not block publishing. Republishing an already published task is safe.',
   },
 );
-route('post', '/tasks/{id}/proposals', 'propose', 'Отправить отклик команды', 'DetailView', 'team', {
+route('post', '/tasks/{id}/proposals', 'propose', 'Send a team proposal', 'DetailView', 'team', {
   body: 'proposal',
   created: true,
   idempotent: true,
   description:
-    'Только опубликованная задача; низкий балл не блокирует отклик. Количество независимых откликов не ограничено. prototypeUrl — HTTP(S) без логина/пароля.',
+    'Published tasks only; a low score does not block proposals. The number of independent proposals is unlimited. prototypeUrl is HTTP(S) without username/password.',
 });
 route(
   'post',
   '/proposals/{id}/decision',
   'decideProposal',
-  'Выбрать или отклонить отклик',
+  'Select or reject a proposal',
   'ReviewView',
   'owner',
   {
     body: 'decision',
     description:
-      'expectedVersion относится к отклику, не задаче. Можно выбрать несколько команд. Нельзя отменить последний выбор команды с подтверждённым этапом.',
+      'expectedVersion refers to the proposal, not the task. Several teams can be selected. The last selection of a team with an approved milestone cannot be undone.',
   },
 );
 route(
   'post',
   '/tasks/{id}/milestones',
   'createMilestone',
-  'Создать этап выбранной команды',
+  'Create a milestone for a selected team',
   'MilestoneView',
   'team',
   {
@@ -794,34 +794,34 @@ route(
     created: true,
     idempotent: true,
     description:
-      'Нужен выбранный отклик этой команды. Один этап на пару задача/команда; points всегда 10 и не принимается от клиента.',
+      'Requires a selected proposal from this team. One milestone per task/team pair; points are always 10 and are not accepted from the client.',
   },
 );
-route('get', '/milestones/{id}', 'milestone', 'Открыть этап и материалы', 'MilestoneView', 'participant');
+route('get', '/milestones/{id}', 'milestone', 'Open a milestone and its materials', 'MilestoneView', 'participant');
 route(
   'post',
   '/milestones/{id}/evidence',
   'submitEvidence',
-  'Отправить результат на проверку',
+  'Submit a result for review',
   'MilestoneView',
   'team',
   {
     body: 'evidence',
     description:
-      'Только своя выбранная команда. expectedVersion относится к этапу. evidenceUrl — HTTP(S) без логина/пароля. Git и AI дают предварительные сведения, очки пока не начисляются. Подтверждённый этап неизменяем.',
+      'Own selected team only. expectedVersion refers to the milestone. evidenceUrl is HTTP(S) without username/password. Git and AI provide preliminary details; no points are awarded yet. An approved milestone is immutable.',
   },
 );
 route(
   'post',
   '/milestones/{id}/decision',
   'decideMilestone',
-  'Подтвердить или вернуть результат',
+  'Approve or return a result',
   'MilestoneView',
   'owner',
   {
     body: 'review',
     description:
-      'expectedVersion относится к этапу. decision=return требует непустой feedback. Подтверждение начисляет ровно 10 очков один раз; повтор approve безопасен. Требуется выбранная команда и in_review.',
+      'expectedVersion refers to the milestone. decision=return requires non-empty feedback. Approval awards exactly 10 points once; a repeated approve is safe. Requires a selected team and in_review.',
   },
 );
 
@@ -831,7 +831,7 @@ export const openApiDocument = {
     title: 'AI Sana BFF',
     version: '1.0',
     description:
-      'Экраны и пользовательские команды. Все успешные ответы: {data, feedback, meta}; ошибки: {error, meta}. Браузерный клиент: backend/client/index.ts. Контракт и сценарий подключения: docs/backend-integration.md.',
+      'Screens and user commands. All successful responses: {data, feedback, meta}; errors: {error, meta}. Browser client: backend/client/index.ts. Contract and integration guide: docs/backend-integration.md.',
   },
   servers: [{ url: '/api/v1' }],
   paths,
@@ -840,7 +840,7 @@ export const openApiDocument = {
       bearerAuth: {
         type: 'http',
         scheme: 'bearer',
-        description: 'Непрозрачный token из session/start или teams/start; это не JWT.',
+        description: 'Opaque token from session/start or teams/start; this is not a JWT.',
       },
     },
     schemas,
