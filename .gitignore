@@ -38,7 +38,9 @@ backend/local-avatar-service/.cache/
 *.onnx
 *.glb
 
-# Local test photos must never be committed
+# Local test photos and isolation previews must never be committed
 beebo.jpeg
 handsome guy.png
 mamyr_altaibek.jpg
+isolated-person.png
+**/isolated-person.png

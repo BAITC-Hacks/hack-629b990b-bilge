@@ -8,7 +8,8 @@ from typing import Optional
 
 from app.models.base import AvatarBackend, AvatarBackendError, BackendHealth
 from app.schemas.jobs import AvatarGenerationResult
-from app.services.export_glb import export_trimesh_glb, normalize_mesh
+from app.services.export_glb import export_trimesh_glb, keep_main_body, normalize_mesh, project_front_colors
+from app.services.preprocess import isolate_person
 from app.storage.paths import VENDOR_DIR
 
 _VENDOR = VENDOR_DIR / "Hunyuan3D-2"
@@ -76,8 +77,8 @@ class HunyuanAvatarBackend(AvatarBackend):
 
         self._shape = None
         self._paint = None
-        self._rembg = None
-        self._paint_failed: Optional[str] = "disabled: shape-only P0"
+        self._seg_model: Optional[str] = None
+        self._paint_failed: Optional[str] = "visible-front texture bake"
 
     def health(self) -> BackendHealth:
         return BackendHealth(
@@ -86,7 +87,12 @@ class HunyuanAvatarBackend(AvatarBackend):
             model_loaded=self._shape is not None,
             gpu=_gpu_name(),
             kind=self.kind,
-            extra={"textureAvailable": self._paint is not None, "textureError": self._paint_failed},
+            extra={
+                "textureAvailable": True,
+                "textureMode": "visible_front_bake",
+                "segmentation": self._seg_model,
+                "textureError": self._paint_failed,
+            },
         )
 
     def _ensure_shape(self, progress=None) -> None:
@@ -114,21 +120,25 @@ class HunyuanAvatarBackend(AvatarBackend):
         self._paint_failed = "disabled: shape-only P0"
 
     def _prepare_image(self, image_path: Path):
-        from PIL import Image
+        from app.storage.paths import TMP_DIR
 
-        # P0: skip rembg. Its default BRIA model is a 1GB download and blocks first inference.
-        image = Image.open(image_path).convert("RGBA")
-        logger.info("Using original photo without rembg (shape-only P0)")
-        return image
+        isolated = isolate_person(image_path)
+        self._seg_model = isolated.model_name
+        preview = TMP_DIR / "isolated-person.png"
+        isolated.image.save(preview)
+        logger.info("Human-only input saved to %s via %s", preview, isolated.model_name)
+        return isolated.image
 
     def generate(self, image_path: Path, output_path: Path, progress=None) -> AvatarGenerationResult:
         import torch
 
+        if progress:
+            progress("validating_image", "Isolating the person from the photo...")
+        image = self._prepare_image(image_path)
         self._ensure_shape(progress)
         if progress:
             progress("reconstructing_human", "Reconstructing your 3D identity...")
 
-        image = self._prepare_image(image_path)
         try:
             mesh = self._shape(
                 image=image,
@@ -154,12 +164,18 @@ class HunyuanAvatarBackend(AvatarBackend):
 
         textured = False
         if progress:
-            progress("building_mesh", "Building your avatar...")
+            progress("building_mesh", "Cleaning the avatar mesh...")
+        mesh = keep_main_body(mesh)
+        mesh = normalize_mesh(mesh)
+        try:
+            mesh = project_front_colors(mesh, image)
+            textured = True
+        except Exception as exc:
+            logger.warning("Front color projection failed, keeping clean mesh: %s", exc)
 
         if progress:
             progress("exporting_glb", "Preparing 3D model...")
         try:
-            mesh = normalize_mesh(mesh)
             export_trimesh_glb(mesh, output_path)
         except Exception as exc:
             raise AvatarBackendError(
@@ -178,6 +194,8 @@ class HunyuanAvatarBackend(AvatarBackend):
                 "shapeRepo": SHAPE_REPO,
                 "shapeSubfolder": SHAPE_SUBFOLDER,
                 "kind": self.kind,
-                "textured": False,
+                "textured": textured,
+                "textureMode": "visible_front_bake" if textured else "none",
+                "segmentation": self._seg_model,
             },
         )

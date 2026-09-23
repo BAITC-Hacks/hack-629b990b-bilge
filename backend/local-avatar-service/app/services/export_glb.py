@@ -1,9 +1,39 @@
 from pathlib import Path
 
+import numpy as np
 import trimesh
+from PIL import Image
 
 
-def normalize_mesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+def keep_main_body(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    scene = _as_trimesh(mesh)
+    parts = scene.split(only_watertight=False)
+    if not parts:
+        return scene
+    scored: list[tuple[float, trimesh.Trimesh]] = []
+    for part in parts:
+        if part.faces is None or len(part.faces) < 80:
+            continue
+        extents = np.asarray(part.extents, dtype=float)
+        height = float(extents[1]) if extents.size >= 2 else 0.0
+        span = float(extents.max()) if extents.size else 0.0
+        score = height * float(part.area)
+        if span > 0 and height < 0.28 * span:
+            score *= 0.04
+        scored.append((score, part))
+    if not scored:
+        return max(parts, key=lambda part: 0 if part.faces is None else len(part.faces))
+    return max(scored, key=lambda item: item[0])[1]
+
+
+def project_front_colors(mesh: trimesh.Trimesh, person_image: Image.Image) -> trimesh.Trimesh:
+    """Visibility-aware front bake. Back/unseen faces never receive the front photo."""
+    from app.services.texture_bake import bake_visible_front_texture
+
+    return bake_visible_front_texture(mesh, person_image)
+
+
+def _as_trimesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     scene = mesh
     if isinstance(mesh, trimesh.Scene):
         dumped = mesh.dump(concatenate=True)
@@ -13,8 +43,11 @@ def normalize_mesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
             scene = trimesh.util.concatenate(tuple(scene.geometry.values()))
         except Exception:
             return mesh
+    return scene
 
-    scene = scene.copy()
+
+def normalize_mesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    scene = _as_trimesh(mesh).copy()
     if scene.vertices is None or len(scene.vertices) == 0:
         raise ValueError("Generated mesh is empty")
 
