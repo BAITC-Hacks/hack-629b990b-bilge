@@ -187,6 +187,7 @@ describe('browser client', () => {
       { method: 'GET', path: '/catalog', invoke: () => api.catalog() },
       { method: 'GET', path: '/dashboard', invoke: () => api.dashboard() },
       { method: 'GET', path: '/scoreboard', invoke: () => api.scoreboard() },
+      { method: 'GET', path: '/world', invoke: () => api.world() },
       { method: 'GET', path: '/snapshot', invoke: () => api.snapshot() },
       {
         method: 'POST',

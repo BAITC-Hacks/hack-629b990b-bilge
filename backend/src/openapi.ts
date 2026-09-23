@@ -501,6 +501,23 @@ const schemas: Record<string, Schema> = {
   ScoreboardView: screen('scoreboard', 'ScoreboardView', {
     teams: array(object({ name: string, confirmedPoints: integer, rank: integer })),
   }),
+  WorldView: screen('world', 'WorldView', {
+    teams: array(object({ id: string, name: string, color: string, avatarPreset: string, confirmedPoints: integer })),
+    achievements: array(
+      object({
+        id: string,
+        teamId: string,
+        teamName: string,
+        teamColor: string,
+        taskId: string,
+        taskTitle: string,
+        milestoneTitle: string,
+        at: string,
+      }),
+    ),
+    netHz: integer,
+    worldHalf: { type: 'number' },
+  }),
   SnapshotView: object({
     bootstrap: ref('BootstrapView'),
     catalog: ref('CatalogView'),
@@ -649,6 +666,10 @@ route('get', '/catalog', 'catalog', 'Каталог и пять станций �
 route('get', '/dashboard', 'dashboard', 'Личный кабинет текущей роли', 'DashboardView', 'member');
 route('get', '/scoreboard', 'scoreboard', 'Подтверждённые очки команд', 'ScoreboardView', 'public', {
   description: 'Только name, confirmedPoints, rank; без контактов и материалов этапа.',
+});
+route('get', '/world', 'world', 'Команды и достижения для 3D-мира', 'WorldView', 'public', {
+  description:
+    'Публично: цвет и облик команд для их баз, подтверждённые очки и последние подтверждённые бизнесом результаты (Hall of Achievements). Присутствие игроков идёт по Socket.IO: world.player.join/move/action/interact/leave → world.player.join/update/state/action/leave; world.triumph — только после первого подтверждения этапа.',
 });
 route('get', '/snapshot', 'snapshot', 'Снимок основных экранов', 'SnapshotView', 'guest', {
   description:

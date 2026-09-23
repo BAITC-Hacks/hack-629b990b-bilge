@@ -11,6 +11,7 @@ import type {
   ReviewView,
   WorkspaceView,
 } from '../src/views.js';
+import type { WorldView } from '../src/world.js';
 
 export type { Actor, Team, TaskFields, FieldKey, Score, Action } from '../src/contracts.js';
 export type {
@@ -23,6 +24,7 @@ export type {
   WorkspaceView,
 } from '../src/views.js';
 export type ScoreboardView = ReturnType<Views['scoreboard']>;
+export type { WorldView, PlayerPresence, PlayerTick, TriumphInfo, MovementState, PresenceState } from '../src/world.js';
 export type SnapshotView = {
   bootstrap: BootstrapView;
   catalog: CatalogView;
@@ -243,6 +245,7 @@ export function createSanaClient(options: SanaClientOptions = {}) {
     },
     dashboard: (opts?: RequestOptions) => get<DashboardView>('/dashboard', opts),
     scoreboard: (opts?: RequestOptions) => get<ScoreboardView>('/scoreboard', opts),
+    world: (opts?: RequestOptions) => get<WorldView>('/world', opts),
     snapshot: (opts?: RequestOptions) => get<SnapshotView>('/snapshot', opts),
     startTask: (input: StartTaskInput, opts?: CreationOptions) =>
       create<WorkspaceView>('/tasks/start', input, opts),

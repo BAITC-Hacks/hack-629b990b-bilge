@@ -16,6 +16,7 @@ import { Work } from './services/work.js';
 import { Views } from './views.js';
 import { createRealtime } from './realtime.js';
 import { openApiDocument } from './openapi.js';
+import { WorldPresence, worldView } from './world.js';
 
 export type AppOptions = {
   store: Store;
@@ -32,6 +33,7 @@ export function createApp(options: AppOptions) {
   const auth = new Auth(options.store, options.sessionTtlHours ?? 24);
   const origins = options.allowedOrigins ?? ['http://localhost:5173', 'http://127.0.0.1:5173'];
   const realtime = createRealtime(httpServer, auth, origins);
+  const world = new WorldPresence(realtime.io, options.store);
   const tasks = new Tasks(options.store, options.ai, (event) => realtime.emit(event));
   const work = new Work(tasks, options.git);
   const views = new Views(options.store, tasks);
@@ -140,6 +142,7 @@ export function createApp(options: AppOptions) {
   );
   api.get('/dashboard', (req, res) => send(res, views.dashboard(actor(req))));
   api.get('/scoreboard', (_req, res) => send(res, views.scoreboard()));
+  api.get('/world', (_req, res) => send(res, worldView(options.store)));
   api.get('/snapshot', (req, res) => {
     const user = optional(req);
     send(res, {
@@ -242,6 +245,8 @@ export function createApp(options: AppOptions) {
     const input = commands.review.parse(req.body);
     const alreadyApproved = work.milestone(id(req)).status === 'approved';
     const item = work.review(user, id(req), input);
+    // GRAND TRIUMPH в 3D-мире — только при первом подтверждении этапа (после записи в SQLite).
+    if (item.status === 'approved' && !alreadyApproved) world.triumph(item);
     send(
       res,
       views.milestone(item.id, user),
@@ -305,5 +310,18 @@ export function createApp(options: AppOptions) {
       meta: { requestId: res.locals.requestId, contractVersion: '1.0' },
     });
   });
-  return { app, httpServer, io: realtime.io, auth, tasks, work, views, close: () => realtime.close() };
+  return {
+    app,
+    httpServer,
+    io: realtime.io,
+    auth,
+    tasks,
+    work,
+    views,
+    world,
+    close: () => {
+      world.close();
+      return realtime.close();
+    },
+  };
 }
