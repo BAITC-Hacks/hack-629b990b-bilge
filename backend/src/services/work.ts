@@ -188,7 +188,7 @@ export class Work {
       description: input.description,
       evidence,
     });
-    const item = this.store.transaction(() => {
+    const item = this.tasks.commitAi(before.taskId, id, input.expectedVersion, review.run, () => {
       const item = validate();
       item.evidenceUrl = input.evidenceUrl;
       item.description = input.description;

@@ -49,4 +49,9 @@ describe('confirmed readiness rules', () => {
     expect(calculateScore({ ...emptyFields(), successMetric: 'MAE' }).value).toBe(0);
     expect(calculateScore({ ...emptyFields(), successMetric: 'MAE', successTarget: '< 10%' }).value).toBe(15);
   });
+  it('keeps an honest unknown answer from earning readiness points', () => {
+    expect(
+      calculateScore({ ...emptyFields(), users: 'Пока не знаю', acceptanceCriteria: 'Пока не знаю!' }).value,
+    ).toBe(0);
+  });
 });

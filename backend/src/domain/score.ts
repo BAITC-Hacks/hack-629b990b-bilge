@@ -14,7 +14,7 @@ export const meaningful = (value: string): boolean => {
   return (
     clean.length >= 3 &&
     /[\p{L}\p{N}]/u.test(clean) &&
-    !/^(не знаю|потом уточню|уточню|нет|не указано|todo|tbd|test|тест|unknown|n\/a|placeholder|пока нет)$/iu.test(
+    !/^((?:пока )?не знаю|потом уточню|уточню|нет|не указано|todo|tbd|test|тест|unknown|n\/a|placeholder|пока нет)$/iu.test(
       clean,
     )
   );

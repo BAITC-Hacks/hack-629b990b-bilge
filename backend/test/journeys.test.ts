@@ -10,6 +10,9 @@ import { Tasks } from '../src/services/tasks.js';
 import { emptyFields, type AiProvider, type GitProvider } from '../src/contracts.js';
 
 export const fakeAi: AiProvider = {
+  async analyze() {
+    return { suggestions: [], mode: 'stub', warning: null };
+  },
   async clarify({ missingFields }) {
     return {
       mode: 'stub',
@@ -107,7 +110,7 @@ describe('BFF task and team journeys', () => {
     });
     expect(start.status).toBe(201);
     const id = start.body.data.task.id;
-    expect(start.body.data.nextAction.id).toBe('clarify');
+    expect(start.body.data.nextAction.id).toBe('analyze');
     const save = await post(business, `/tasks/${id}/draft`, {
       expectedVersion: start.body.data.task.version,
       fields: complete,

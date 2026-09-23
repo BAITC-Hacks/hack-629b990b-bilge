@@ -16,6 +16,7 @@ import { Store } from './db.js';
 import { invariant } from './errors.js';
 import { Tasks } from './services/tasks.js';
 import { mayRejectProposal } from './services/work.js';
+import { checkQuality } from './domain/quality.js';
 
 const fieldLabels: Record<FieldKey, string> = {
   title: 'Название',
@@ -253,6 +254,22 @@ export class Views {
     const needsInitialClarification = !task.clarifiedAt && !task.confirmedFields;
     const clarification = clarificationView(task);
     const continueQuestions = clarification?.nextQuestion && !clarification.reviewed;
+    const analysis = task.analysis
+      ? {
+          ...task.analysis,
+          status: task.analysis.resolved
+            ? ('resolved' as const)
+            : task.analysis.applicableVersion !== task.version
+              ? ('stale' as const)
+              : task.analysis.suggestions.length
+                ? ('ready' as const)
+                : ('empty' as const),
+          canApply: !task.analysis.resolved && task.analysis.applicableVersion === task.version,
+          notice:
+            'Проверьте цитаты и выберите, что добавить. Уже заполненные поля сохранятся. Можно отклонить все предложения.',
+        }
+      : null;
+    const quality = checkQuality(task.draftFields);
     return {
       screen: 'task-workspace' as const,
       task: {
@@ -278,6 +295,9 @@ export class Views {
         ...fieldInput(field),
       })),
       clarification,
+      analysis,
+      quality,
+      aiRuns: this.store.aiRuns(id),
       steps: [
         { id: 'describe', label: 'Описание', complete: !!task.rawDescription },
         {
@@ -288,37 +308,51 @@ export class Views {
         { id: 'confirm', label: 'Подтверждение', complete: !!task.confirmedFields && !hasUnconfirmedChanges },
         { id: 'publish', label: 'Публикация', complete: task.publicationStatus === 'published' },
       ],
-      nextAction: needsInitialClarification
-        ? {
-            id: 'clarify',
-            label: 'Уточнить задачу с ИИ',
-            hint: 'Ответьте на вопросы, чтобы командам было проще начать работу',
-          }
-        : continueQuestions
+      nextAction:
+        !analysis && needsInitialClarification
           ? {
-              id: 'answer_question',
-              label: 'Продолжить уточнение',
-              hint: `Осталось вопросов: ${clarification!.progress.remaining}. Ответы сохранены, можно вернуться позже.`,
+              id: 'analyze',
+              label: 'Разобрать описание',
+              hint: 'Найдём уже указанные сведения, чтобы вам не вводить их повторно',
             }
-          : !task.confirmedFields || hasUnconfirmedChanges || (clarification && !clarification.reviewed)
+          : analysis?.status === 'ready'
             ? {
-                id: 'confirm',
-                label: 'Подтвердить сведения',
-                hint: forecast.nextImprovement?.message ?? 'Проверьте сведения перед подтверждением',
+                id: 'review_suggestions',
+                label: 'Проверить предложения',
+                hint: 'Выберите подходящие цитаты или продолжите без них',
               }
-            : task.publicationStatus === 'draft'
+            : needsInitialClarification
               ? {
-                  id: 'publish',
-                  label: 'Опубликовать задачу',
-                  hint: 'Карточка станет доступна всем командам',
+                  id: 'clarify',
+                  label: 'Уточнить задачу с ИИ',
+                  hint: 'Ответьте на вопросы, чтобы командам было проще начать работу',
                 }
-              : {
-                  id: 'review',
-                  label: 'Посмотреть отклики',
-                  hint: 'Выберите одну, несколько или ни одной команды',
-                },
+              : continueQuestions
+                ? {
+                    id: 'answer_question',
+                    label: 'Продолжить уточнение',
+                    hint: `Осталось вопросов: ${clarification!.progress.remaining}. Ответы сохранены, можно вернуться позже.`,
+                  }
+                : !task.confirmedFields || hasUnconfirmedChanges || (clarification && !clarification.reviewed)
+                  ? {
+                      id: 'confirm',
+                      label: 'Подтвердить сведения',
+                      hint: forecast.nextImprovement?.message ?? 'Проверьте сведения перед подтверждением',
+                    }
+                  : task.publicationStatus === 'draft'
+                    ? {
+                        id: 'publish',
+                        label: 'Опубликовать задачу',
+                        hint: 'Карточка станет доступна всем командам',
+                      }
+                    : {
+                        id: 'review',
+                        label: 'Посмотреть отклики',
+                        hint: 'Выберите одну, несколько или ни одной команды',
+                      },
       actions: [
         action('save_draft', 'Сохранить черновик'),
+        action('analyze', 'Разобрать описание'),
         action('clarify', 'Помочь уточнить'),
         action('confirm', 'Подтвердить сведения', titleValid, 'Укажите название и отрасль'),
         action(

@@ -74,7 +74,10 @@ export function createApp(options: AppOptions) {
   if (options.rateLimit !== false) {
     app.use('/api', limiter(240));
     app.use(['/api/v1/session/start', '/api/v1/teams/start'], limiter(30));
-    app.use(['/api/v1/tasks/:id/clarify', '/api/v1/milestones/:id/evidence'], limiter(20));
+    app.use(
+      ['/api/v1/tasks/:id/analyze', '/api/v1/tasks/:id/clarify', '/api/v1/milestones/:id/evidence'],
+      limiter(20),
+    );
   }
   const token = (req: Request) => {
     const header = req.headers.authorization;
@@ -173,6 +176,29 @@ export function createApp(options: AppOptions) {
       workspace.clarification?.nextQuestion
         ? 'Ответ сохранён. Можно перейти к следующему вопросу или вернуться позже.'
         : 'Ответы сохранены. Проверьте карточку и подтвердите сведения.',
+    );
+  });
+  api.post('/tasks/:id/analyze', async (req, res) => {
+    const user = actor(req);
+    const task = await tasks.analyze(user, id(req), commands.version.parse(req.body).expectedVersion);
+    send(
+      res,
+      views.workspace(task.id, user),
+      task.analysis?.suggestions.length
+        ? 'Предложения готовы. Проверьте цитаты перед добавлением.'
+        : 'Описание сохранено. Можно заполнить поля вручную или перейти к уточнениям.',
+    );
+  });
+  api.post('/tasks/:id/suggestions/apply', (req, res) => {
+    const user = actor(req);
+    const input = commands.applySuggestions.parse(req.body);
+    const task = tasks.applySuggestions(user, id(req), input);
+    send(
+      res,
+      views.workspace(task.id, user),
+      input.suggestionIds.length
+        ? 'Выбранные сведения добавлены в черновик. Проверьте карточку перед подтверждением.'
+        : 'Предложения отклонены. Ваши сведения сохранены.',
     );
   });
   api.post('/tasks/:id/clarify', async (req, res) => {

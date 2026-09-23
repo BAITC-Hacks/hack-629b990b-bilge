@@ -14,6 +14,8 @@
     "test": "vitest run",
     "seed": "tsx src/seed-cli.ts",
     "demo": "tsx scripts/demo.ts",
+    "preflight": "tsx scripts/preflight.ts",
+    "eval": "tsx scripts/eval.ts",
     "format": "prettier --write src client test scripts",
     "format:check": "prettier --check src client test scripts"
   },

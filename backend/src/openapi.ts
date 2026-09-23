@@ -151,21 +151,107 @@ const schemas: Record<string, Schema> = {
     version: integer,
     createdAt: string,
   }),
-  Evidence: object({
-    provider: { type: 'string', enum: ['github', 'manual', 'mock'] },
-    status: { type: 'string', enum: ['verified', 'unavailable', 'manual', 'mock'] },
-    url: string,
-    title: string,
-    summary: string,
-    facts: array(string),
-    warning: nullable(string),
+  Evidence: object(
+    {
+      provider: { type: 'string', enum: ['github', 'manual', 'mock'] },
+      status: { type: 'string', enum: ['verified', 'unavailable', 'manual', 'mock'] },
+      url: string,
+      title: string,
+      summary: string,
+      facts: array(string),
+      warning: nullable(string),
+      snapshot: nullable(ref('GitSnapshot')),
+    },
+    ['provider', 'status', 'url', 'title', 'summary', 'facts', 'warning'],
+  ),
+  GitSnapshot: object({
+    commitSha: string,
+    inspectedAt: string,
+    coverage: {
+      type: 'string',
+      enum: ['complete', 'partial', 'metadata_only'],
+      description: 'Полнота доступной выборки материалов. Не означает аудит всего репозитория.',
+    },
+    files: array(
+      object({
+        id: string,
+        path: string,
+        kind: { type: 'string', enum: ['readme', 'patch'] },
+        sourceUrl: string,
+        content: string,
+        truncated: boolean,
+      }),
+    ),
+    warnings: array(string),
   }),
-  EvidenceReview: object({
+  AiRun: object({
+    id: string,
+    operation: { type: 'string', enum: ['analyze', 'clarify', 'review_evidence'] },
+    model: nullable(string),
+    promptVersion: string,
+    startedAt: string,
+    durationMs: integer,
     mode: { type: 'string', enum: ['openai', 'stub'] },
-    summary: string,
-    checks: array(string),
-    warning: nullable(string),
+    outcome: { type: 'string', enum: ['completed', 'fallback'] },
+    fallbackReason: nullable({
+      type: 'string',
+      enum: ['disabled', 'missing_key', 'timeout', 'rate_limit', 'provider_error', 'invalid_output'],
+    }),
+    inputTokens: nullable(integer),
+    outputTokens: nullable(integer),
+    validation: { type: 'string', enum: ['passed', 'failed', 'not_run'] },
   }),
+  Analysis: object(
+    {
+      id: string,
+      sourceVersion: integer,
+      applicableVersion: integer,
+      resolved: boolean,
+      status: { type: 'string', enum: ['ready', 'empty', 'resolved', 'stale'] },
+      canApply: boolean,
+      notice: string,
+      mode: { type: 'string', enum: ['openai', 'stub'] },
+      warning: nullable(string),
+      suggestions: array(
+        object({
+          id: string,
+          field: string,
+          value: string,
+          source: object({ id: { const: 'rawDescription', type: 'string' }, quote: string }),
+        }),
+      ),
+      run: ref('AiRun'),
+    },
+    [
+      'id',
+      'sourceVersion',
+      'applicableVersion',
+      'resolved',
+      'status',
+      'canApply',
+      'notice',
+      'mode',
+      'warning',
+      'suggestions',
+    ],
+  ),
+  CriterionEvidence: object({
+    criterion: string,
+    status: { type: 'string', enum: ['materials_found', 'insufficient_evidence', 'not_assessed'] },
+    citations: array(object({ materialId: string, path: string, sourceUrl: string, quote: string })),
+    nextStep: string,
+  }),
+  EvidenceReview: object(
+    {
+      mode: { type: 'string', enum: ['openai', 'stub'] },
+      summary: string,
+      checks: array(string),
+      warning: nullable(string),
+      criterionEvidence: array(ref('CriterionEvidence')),
+      run: ref('AiRun'),
+    },
+    ['mode', 'summary', 'checks', 'warning'],
+  ),
   MilestoneItem: object({
     id: string,
     taskId: string,
@@ -271,6 +357,33 @@ const schemas: Record<string, Schema> = {
       }),
     ),
     clarification: nullable(ref('Clarification')),
+    analysis: nullable(ref('Analysis')),
+    quality: object({
+      warnings: array(
+        object({
+          id: string,
+          field: string,
+          relatedFields: array(string),
+          message: string,
+          actionLabel: string,
+        }),
+      ),
+      notice: string,
+      nextAction: nullable(
+        object({ id: { type: 'string', const: 'edit_field' }, field: string, label: string, hint: string }),
+      ),
+    }),
+    aiRuns: array({
+      allOf: [
+        ref('AiRun'),
+        object({
+          taskId: string,
+          entityId: string,
+          sourceVersion: integer,
+          disposition: { type: 'string', enum: ['applied', 'stale'] },
+        }),
+      ],
+    }),
     steps: array(object({ id: string, label: string, complete: boolean })),
     nextAction: object({ id: string, label: string, hint: string }),
     actions,
@@ -505,6 +618,32 @@ route('get', '/tasks/{id}', 'task', 'Карточка опубликованно
 });
 route('get', '/tasks/{id}/workspace', 'workspace', 'Конструктор задачи', 'WorkspaceView', 'owner');
 route('get', '/tasks/{id}/review', 'reviewDesk', 'Сравнение откликов и результатов', 'ReviewView', 'owner');
+route(
+  'post',
+  '/tasks/{id}/analyze',
+  'analyzeTask',
+  'Разобрать описание на предложения с цитатами',
+  'WorkspaceView',
+  'owner',
+  {
+    body: 'version',
+    description:
+      'AI предлагает дословные значения для пустых полей. Проверка и выбор пользователя обязательны. Ответ содержит analysis, quality и приватную aiRuns. Заполненные поля не меняются.',
+  },
+);
+route(
+  'post',
+  '/tasks/{id}/suggestions/apply',
+  'applySuggestions',
+  'Добавить выбранные сведения в черновик',
+  'WorkspaceView',
+  'owner',
+  {
+    body: 'applySuggestions',
+    description:
+      'Передайте analysisId и выбранные suggestionIds из актуального workspace. Пустой список отклоняет все предложения. Выбор завершает анализ; повтор или применение после правок возвращает конфликт. Официальные сведения меняются только после confirm.',
+  },
+);
 route('post', '/tasks/{id}/draft', 'saveDraft', 'Сохранить частичные правки', 'WorkspaceView', 'owner', {
   body: 'draft',
   description:

@@ -41,6 +41,7 @@ export type CreateTeamInput = CommandInput<'createTeam'>;
 export type StartTaskInput = CommandInput<'start'>;
 export type SaveDraftInput = CommandInput<'draft'>;
 export type ApplyAnswersInput = CommandInput<'answers'>;
+export type ApplySuggestionsInput = CommandInput<'applySuggestions'>;
 export type VersionInput = CommandInput<'version'>;
 export type ProposalInput = CommandInput<'proposal'>;
 export type ProposalDecisionInput = CommandInput<'decision'>;
@@ -255,6 +256,10 @@ export function createSanaClient(options: SanaClientOptions = {}) {
       post<WorkspaceView>(`/tasks/${pathId(id)}/answers`, input, opts),
     clarifyTask: (id: string, input: VersionInput, opts?: RequestOptions) =>
       post<WorkspaceView>(`/tasks/${pathId(id)}/clarify`, input, opts),
+    analyzeTask: (id: string, input: VersionInput, opts?: RequestOptions) =>
+      post<WorkspaceView>(`/tasks/${pathId(id)}/analyze`, input, opts),
+    applySuggestions: (id: string, input: ApplySuggestionsInput, opts?: RequestOptions) =>
+      post<WorkspaceView>(`/tasks/${pathId(id)}/suggestions/apply`, input, opts),
     confirmTask: (id: string, input: VersionInput, opts?: RequestOptions) =>
       post<WorkspaceView>(`/tasks/${pathId(id)}/confirm`, input, opts),
     publishTask: (id: string, input: VersionInput, opts?: RequestOptions) =>

@@ -208,6 +208,17 @@ describe('browser client', () => {
           api.applyAnswers('task-1', { ...version, answers: [{ field: 'noConstraints', value: true }] }),
       },
       { method: 'POST', path: '/tasks/task-1/clarify', invoke: () => api.clarifyTask('task-1', version) },
+      { method: 'POST', path: '/tasks/task-1/analyze', invoke: () => api.analyzeTask('task-1', version) },
+      {
+        method: 'POST',
+        path: '/tasks/task-1/suggestions/apply',
+        invoke: () =>
+          api.applySuggestions('task-1', {
+            ...version,
+            analysisId: '00000000-0000-4000-8000-000000000000',
+            suggestionIds: [],
+          }),
+      },
       { method: 'POST', path: '/tasks/task-1/confirm', invoke: () => api.confirmTask('task-1', version) },
       { method: 'POST', path: '/tasks/task-1/publish', invoke: () => api.publishTask('task-1', version) },
       {

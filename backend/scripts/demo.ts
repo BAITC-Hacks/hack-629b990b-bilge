@@ -22,8 +22,14 @@ const runtime = createApp({
     mode: live ? 'openai' : 'stub',
     apiKey: config.OPENAI_API_KEY,
     model: config.OPENAI_MODEL,
+    timeoutMs: config.AI_TIMEOUT_MS,
+    maxOutputTokens: config.AI_MAX_OUTPUT_TOKENS,
   }),
-  git: createGitProvider({ mode: live ? 'real' : 'mock', token: config.GITHUB_TOKEN }),
+  git: createGitProvider({
+    mode: live ? 'real' : 'mock',
+    token: config.GITHUB_TOKEN,
+    timeoutMs: config.GIT_TIMEOUT_MS,
+  }),
 });
 await new Promise<void>((r) => runtime.httpServer.listen(0, '127.0.0.1', r));
 const address = runtime.httpServer.address();
@@ -46,10 +52,27 @@ try {
   const team1 = (await login('demo-student-1')).token as string;
   const team2 = (await login('demo-student-2')).token as string;
   let workspace = await call('/tasks/start', business, {
-    rawDescription: 'В кафе остаётся много непроданной еды',
+    rawDescription:
+      'В кафе остаётся много непроданной еды. Пользователи: менеджер кафе. Источник данных: CSV продаж и списаний. Ожидаемый результат: прототип прогноза закупок.',
     industry: 'Общепит',
   });
   const id = workspace.task.id;
+  workspace = await call(`/tasks/${id}/analyze`, business, { expectedVersion: workspace.task.version });
+  if (live && (workspace.analysis.mode !== 'openai' || workspace.analysis.suggestions.length < 2))
+    throw new Error(
+      `Live analysis failed: ${workspace.analysis.run?.fallbackReason ?? 'too few suggestions'}`,
+    );
+  const analyzed = workspace.analysis;
+  workspace = await call(`/tasks/${id}/suggestions/apply`, business, {
+    expectedVersion: workspace.task.version,
+    analysisId: analyzed.id,
+    suggestionIds: analyzed.suggestions.map((s: { id: string }) => s.id),
+  });
+  if (workspace.analysis.status !== 'resolved' || workspace.officialScore !== null)
+    throw new Error('Suggestions bypassed human confirmation');
+  console.log(
+    `Analysis: ${analyzed.mode}, ${analyzed.suggestions.length} source quotes reviewed and applied`,
+  );
   workspace = await call(`/tasks/${id}/clarify`, business, { expectedVersion: workspace.task.version });
   if (workspace.clarification.questions.length < 3) throw new Error('Insufficient questions');
   if (live && workspace.clarification.mode !== 'openai')
@@ -90,7 +113,7 @@ try {
     await call(`/proposals/${p.id}/decision`, business, { expectedVersion: p.version, decision: 'select' });
   const phase = await call(`/tasks/${id}/milestones`, team1, {
     title: 'Прогноз на примере',
-    acceptanceCriteria: 'Показать CSV и прогноз по блюдам',
+    acceptanceCriteria: 'Показать пример вызова OpenAI API\nПоказать CSV и прогноз по блюдам',
   });
   const submitted = await call(`/milestones/${phase.milestone.id}/evidence`, team1, {
     expectedVersion: phase.milestone.version,
@@ -101,6 +124,20 @@ try {
     throw new Error('Live Git metadata was not verified');
   if (live && submitted.milestone.review.mode !== 'openai')
     throw new Error('Live evidence AI review fell back');
+  if (live && !submitted.milestone.evidence.snapshot?.files.length)
+    throw new Error('Live Git did not read materials');
+  if (
+    live &&
+    !submitted.milestone.review.criterionEvidence?.some(
+      (item: { citations: unknown[] }) => item.citations.length,
+    )
+  )
+    throw new Error('Live review did not cite the SDK example');
+  const history = await call(`/tasks/${id}/workspace`, business);
+  if (history.aiRuns.length !== 3) throw new Error('Missing persisted analysis/clarification/review traces');
+  console.log(
+    `Git snapshot: ${submitted.milestone.evidence.snapshot?.coverage ?? 'mock'}, ${submitted.milestone.evidence.snapshot?.files.length ?? 0} materials. Private AI history: ${history.aiRuns.length} runs.`,
+  );
   console.log(`Evidence review: ${submitted.milestone.review.mode}`);
   if (submitted.milestone.confirmedPoints !== 0) throw new Error('Points awarded before approval');
   const approval = { expectedVersion: submitted.milestone.version, decision: 'approve' };

@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { Actor, Milestone, Proposal, Task, Team } from './contracts.js';
+import type { Actor, Milestone, Proposal, Task, Team, StoredAiRun } from './contracts.js';
 
 type Entity = Task | Proposal | Milestone | Team;
 type Table = 'tasks' | 'proposals' | 'milestones' | 'teams';
@@ -26,11 +26,33 @@ export class Store {
       CREATE INDEX IF NOT EXISTS idx_tasks_owner ON tasks(owner_id);
       CREATE INDEX IF NOT EXISTS idx_proposals_task ON proposals(task_id);
       CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
+      CREATE TABLE IF NOT EXISTS ai_runs (id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES tasks(id), body TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS idx_ai_runs_task ON ai_runs(task_id);
       PRAGMA user_version = 1;
     `);
   }
   close() {
     this.db.close();
+  }
+  saveAiRun(run: StoredAiRun) {
+    this.db
+      .prepare(
+        'INSERT INTO ai_runs(id,task_id,body) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body',
+      )
+      .run(run.id, run.taskId, JSON.stringify(run));
+    // Keep local demo storage bounded; no prompts, secrets or raw outputs in this table.
+    this.db
+      .prepare(
+        'DELETE FROM ai_runs WHERE task_id=? AND rowid NOT IN (SELECT rowid FROM ai_runs WHERE task_id=? ORDER BY rowid DESC LIMIT 100)',
+      )
+      .run(run.taskId, run.taskId);
+  }
+  aiRuns(taskId: string): StoredAiRun[] {
+    return (
+      this.db
+        .prepare('SELECT body FROM ai_runs WHERE task_id=? ORDER BY rowid DESC LIMIT 20')
+        .all(taskId) as { body: string }[]
+    ).map((row) => JSON.parse(row.body) as StoredAiRun);
   }
   transaction<T>(fn: () => T): T {
     return this.db.transaction(fn)();

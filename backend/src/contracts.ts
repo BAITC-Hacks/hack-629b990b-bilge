@@ -100,6 +100,7 @@ export type Task = {
   revision?: number;
   clarification: (ClarificationResult & { answeredFields?: FieldKey[]; reviewed?: boolean }) | null;
   clarifiedAt?: string | null;
+  analysis?: TaskAnalysis | null;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
@@ -148,6 +149,63 @@ export const clarificationSchema = z
 export type ClarificationResult = z.infer<typeof clarificationSchema> & {
   mode: 'openai' | 'stub';
   warning: string | null;
+  run?: AiRun;
+};
+export type AiOperation = 'analyze' | 'clarify' | 'review_evidence';
+export type AiRun = {
+  id: string;
+  operation: AiOperation;
+  model: string | null;
+  promptVersion: string;
+  startedAt: string;
+  durationMs: number;
+  mode: 'openai' | 'stub';
+  outcome: 'completed' | 'fallback';
+  fallbackReason:
+    'disabled' | 'missing_key' | 'timeout' | 'rate_limit' | 'provider_error' | 'invalid_output' | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  validation: 'passed' | 'failed' | 'not_run';
+};
+export type StoredAiRun = AiRun & {
+  taskId: string;
+  entityId: string;
+  sourceVersion: number;
+  disposition: 'applied' | 'stale';
+};
+export const suggestionFieldSchema = fieldKeySchema.exclude(['dataAvailability', 'noConstraints']);
+export type FieldSuggestion = {
+  id: string;
+  field: z.infer<typeof suggestionFieldSchema>;
+  value: string;
+  source: { id: 'rawDescription'; quote: string };
+};
+export type AnalysisResult = {
+  suggestions: FieldSuggestion[];
+  mode: 'openai' | 'stub';
+  warning: string | null;
+  run?: AiRun;
+};
+export type TaskAnalysis = AnalysisResult & {
+  id: string;
+  sourceVersion: number;
+  applicableVersion: number;
+  resolved: boolean;
+};
+export type GitMaterial = {
+  id: string;
+  path: string;
+  kind: 'readme' | 'patch';
+  sourceUrl: string;
+  content: string;
+  truncated: boolean;
+};
+export type GitSnapshot = {
+  commitSha: string;
+  inspectedAt: string;
+  coverage: 'complete' | 'partial' | 'metadata_only';
+  files: GitMaterial[];
+  warnings: string[];
 };
 export type EvidenceResult = {
   provider: 'github' | 'manual' | 'mock';
@@ -157,14 +215,24 @@ export type EvidenceResult = {
   summary: string;
   facts: string[];
   warning: string | null;
+  snapshot?: GitSnapshot | null;
+};
+export type CriterionEvidence = {
+  criterion: string;
+  status: 'materials_found' | 'insufficient_evidence' | 'not_assessed';
+  citations: { materialId: string; path: string; sourceUrl: string; quote: string }[];
+  nextStep: string;
 };
 export type EvidenceReview = {
   mode: 'openai' | 'stub';
   summary: string;
   checks: string[];
   warning: string | null;
+  criterionEvidence?: CriterionEvidence[];
+  run?: AiRun;
 };
 export interface AiProvider {
+  analyze(input: { rawDescription: string; fields: TaskFields }): Promise<AnalysisResult>;
   clarify(input: {
     rawDescription: string;
     fields: TaskFields;
@@ -193,6 +261,13 @@ export const commands = {
     .strict(),
   draft: z.object({ expectedVersion: versionSchema, fields: fieldsSchema.partial() }).strict(),
   version: z.object({ expectedVersion: versionSchema }).strict(),
+  applySuggestions: z
+    .object({
+      expectedVersion: versionSchema,
+      analysisId: z.string().uuid(),
+      suggestionIds: z.array(z.string().max(100)).max(14),
+    })
+    .strict(),
   answers: z
     .object({
       expectedVersion: versionSchema,

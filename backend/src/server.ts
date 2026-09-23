@@ -29,8 +29,13 @@ const runtime = createApp({
     model: config.OPENAI_MODEL,
     mode: config.AI_MODE,
     timeoutMs: config.AI_TIMEOUT_MS,
+    maxOutputTokens: config.AI_MAX_OUTPUT_TOKENS,
   }),
-  git: createGitProvider({ mode: config.GIT_MODE, token: config.GITHUB_TOKEN }),
+  git: createGitProvider({
+    mode: config.GIT_MODE,
+    token: config.GITHUB_TOKEN,
+    timeoutMs: config.GIT_TIMEOUT_MS,
+  }),
 });
 runtime.httpServer.listen(config.PORT, config.HOST, () => {
   console.log(`AI Sana backend: ${localOrigin}/api/v1/health`);

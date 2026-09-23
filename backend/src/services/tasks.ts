@@ -8,6 +8,7 @@ import {
   type AiProvider,
   type DomainEvent,
   type Task,
+  type AiRun,
 } from '../contracts.js';
 import { Store } from '../db.js';
 import { assertVersion, invariant, AppError } from '../errors.js';
@@ -169,6 +170,96 @@ export class Tasks {
     const parsed = fieldsSchema.partial().parse(fields);
     return this.draft(actor, id, { expectedVersion: input.expectedVersion, fields: parsed });
   }
+  commitAi<T>(
+    taskId: string,
+    entityId: string,
+    sourceVersion: number,
+    run: AiRun | undefined,
+    apply: () => T,
+  ): T {
+    try {
+      return this.store.transaction(() => {
+        const result = apply();
+        if (run) this.store.saveAiRun({ ...run, taskId, entityId, sourceVersion, disposition: 'applied' });
+        return result;
+      });
+    } catch (error) {
+      // Outside the rolled-back transaction: the paid call happened even if its result became stale.
+      if (run) this.store.saveAiRun({ ...run, taskId, entityId, sourceVersion, disposition: 'stale' });
+      throw error;
+    }
+  }
+  async analyze(actor: Actor, id: string, expected: number): Promise<Task> {
+    const before = this.own(actor, id);
+    assertVersion(before.version, expected);
+    const result = await this.ai.analyze({
+      rawDescription: before.rawDescription,
+      fields: before.draftFields,
+    });
+    const task = this.commitAi(id, id, expected, result.run, () => {
+      const task = this.own(actor, id);
+      assertVersion(task.version, expected);
+      task.analysis = {
+        ...result,
+        id: randomUUID(),
+        sourceVersion: expected,
+        applicableVersion: expected + 1,
+        resolved: false,
+      };
+      this.bump(task);
+      return task;
+    });
+    this.announce(task, 'task.changed');
+    return task;
+  }
+  applySuggestions(actor: Actor, id: string, input: z.infer<typeof commands.applySuggestions>): Task {
+    const task = this.store.transaction(() => {
+      const task = this.own(actor, id);
+      assertVersion(task.version, input.expectedVersion);
+      const analysis = task.analysis;
+      if (
+        !analysis ||
+        analysis.id !== input.analysisId ||
+        analysis.resolved ||
+        analysis.applicableVersion !== task.version
+      )
+        throw new AppError(
+          409,
+          'ANALYSIS_STALE',
+          'Предложения относятся к предыдущей версии. Запустите разбор снова; ваши правки сохранены.',
+          {},
+          'reanalyze',
+        );
+      const ids = new Set(input.suggestionIds);
+      invariant(
+        ids.size === input.suggestionIds.length &&
+          [...ids].every((id) => analysis.suggestions.some((item) => item.id === id)),
+        422,
+        'INVALID_SUGGESTIONS',
+        'Выберите предложения из текущего анализа',
+      );
+      const answered = new Set(task.clarification?.answeredFields ?? []);
+      for (const suggestion of analysis.suggestions)
+        if (ids.has(suggestion.id)) {
+          invariant(
+            !task.draftFields[suggestion.field].trim(),
+            409,
+            'FIELD_ALREADY_FILLED',
+            'Поле уже заполнено. Сохранённый текст не изменён.',
+          );
+          task.draftFields[suggestion.field] = suggestion.value;
+          if (task.clarification?.questions.some((question) => question.field === suggestion.field))
+            answered.add(suggestion.field);
+        }
+      if (task.clarification) task.clarification.answeredFields = [...answered];
+      task.draftFields = fieldsSchema.parse(task.draftFields);
+      analysis.resolved = true;
+      this.bump(task);
+      return task;
+    });
+    this.announce(task, 'task.changed');
+    return task;
+  }
   async clarify(actor: Actor, id: string, expected: number): Promise<Task> {
     const before = this.own(actor, id);
     assertVersion(before.version, expected);
@@ -177,7 +268,7 @@ export class Tasks {
       fields: before.draftFields,
       missingFields: calculateScore(before.draftFields).missingFields,
     });
-    const task = this.store.transaction(() => {
+    const task = this.commitAi(id, id, expected, clarification.run, () => {
       const task = this.own(actor, id);
       assertVersion(task.version, expected);
       task.clarification = { ...clarification, answeredFields: [], reviewed: false };

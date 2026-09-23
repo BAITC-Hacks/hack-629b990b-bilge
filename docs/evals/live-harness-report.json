@@ -1,0 +1,718 @@
+{
+  "generatedAt": "2026-09-23T11:25:01.466Z",
+  "model": "gpt-6-luna",
+  "mode": "live",
+  "scope": "15 synthetic extraction scenarios; exact quote grounding, expected fields, prohibited assumptions, preserving edits. Not a complete semantic or UX benchmark.",
+  "total": 45,
+  "passed": 45,
+  "fallbacks": 0,
+  "p50Ms": 2781,
+  "p95Ms": 4853,
+  "inputTokens": 17334,
+  "outputTokens": 7845,
+  "results": [
+    {
+      "caseId": "acceptance",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "dataSource",
+        "expectedResult",
+        "acceptanceCriteria"
+      ],
+      "durationMs": 3586,
+      "inputTokens": 385,
+      "outputTokens": 230,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "acceptance",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "dataSource",
+        "expectedResult",
+        "acceptanceCriteria"
+      ],
+      "durationMs": 3367,
+      "inputTokens": 385,
+      "outputTokens": 225,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "acceptance",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "dataSource",
+        "acceptanceCriteria"
+      ],
+      "durationMs": 3291,
+      "inputTokens": 385,
+      "outputTokens": 233,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "cafe",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "industry",
+        "context",
+        "users",
+        "dataSource",
+        "need",
+        "expectedResult"
+      ],
+      "durationMs": 5454,
+      "inputTokens": 386,
+      "outputTokens": 239,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "cafe",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "industry",
+        "context",
+        "users",
+        "dataSource",
+        "need",
+        "expectedResult"
+      ],
+      "durationMs": 5854,
+      "inputTokens": 386,
+      "outputTokens": 270,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "cafe",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "industry",
+        "context",
+        "users",
+        "dataSource",
+        "expectedResult"
+      ],
+      "durationMs": 4853,
+      "inputTokens": 386,
+      "outputTokens": 370,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "constraints",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "constraints"
+      ],
+      "durationMs": 2436,
+      "inputTokens": 381,
+      "outputTokens": 155,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "constraints",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "constraints"
+      ],
+      "durationMs": 2437,
+      "inputTokens": 381,
+      "outputTokens": 150,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "constraints",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "constraints"
+      ],
+      "durationMs": 2064,
+      "inputTokens": 381,
+      "outputTokens": 133,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "contact",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "contact",
+        "interactionFormat"
+      ],
+      "durationMs": 3252,
+      "inputTokens": 384,
+      "outputTokens": 156,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "contact",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "contact",
+        "interactionFormat"
+      ],
+      "durationMs": 1875,
+      "inputTokens": 384,
+      "outputTokens": 102,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "contact",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "contact",
+        "interactionFormat"
+      ],
+      "durationMs": 2733,
+      "inputTokens": 384,
+      "outputTokens": 139,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "contradiction",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 2533,
+      "inputTokens": 388,
+      "outputTokens": 159,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "contradiction",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 2712,
+      "inputTokens": 388,
+      "outputTokens": 192,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "contradiction",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 3114,
+      "inputTokens": 388,
+      "outputTokens": 200,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "injection",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need"
+      ],
+      "durationMs": 1690,
+      "inputTokens": 398,
+      "outputTokens": 72,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "injection",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need"
+      ],
+      "durationMs": 1685,
+      "inputTokens": 398,
+      "outputTokens": 70,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "injection",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need"
+      ],
+      "durationMs": 1893,
+      "inputTokens": 398,
+      "outputTokens": 103,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "kazakh",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 2994,
+      "inputTokens": 391,
+      "outputTokens": 216,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "kazakh",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 3921,
+      "inputTokens": 391,
+      "outputTokens": 238,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "kazakh",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "need",
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 4206,
+      "inputTokens": 391,
+      "outputTokens": 283,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "metric",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "successMetric",
+        "successTarget"
+      ],
+      "durationMs": 4041,
+      "inputTokens": 383,
+      "outputTokens": 194,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "metric",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "successMetric",
+        "successTarget"
+      ],
+      "durationMs": 2914,
+      "inputTokens": 383,
+      "outputTokens": 162,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "metric",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "successMetric",
+        "successTarget"
+      ],
+      "durationMs": 4491,
+      "inputTokens": 383,
+      "outputTokens": 263,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "no_data",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "need",
+        "users"
+      ],
+      "durationMs": 2764,
+      "inputTokens": 380,
+      "outputTokens": 174,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "no_data",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "need",
+        "users"
+      ],
+      "durationMs": 3041,
+      "inputTokens": 380,
+      "outputTokens": 212,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "no_data",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "users"
+      ],
+      "durationMs": 2496,
+      "inputTokens": 380,
+      "outputTokens": 163,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "preserve_edit",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "dataSource"
+      ],
+      "durationMs": 1619,
+      "inputTokens": 383,
+      "outputTokens": 62,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "preserve_edit",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "industry",
+        "dataSource"
+      ],
+      "durationMs": 2172,
+      "inputTokens": 383,
+      "outputTokens": 117,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "preserve_edit",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "dataSource"
+      ],
+      "durationMs": 1705,
+      "inputTokens": 383,
+      "outputTokens": 71,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "quoted_example",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need"
+      ],
+      "durationMs": 1820,
+      "inputTokens": 400,
+      "outputTokens": 104,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "quoted_example",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need"
+      ],
+      "durationMs": 2269,
+      "inputTokens": 400,
+      "outputTokens": 116,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "quoted_example",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need"
+      ],
+      "durationMs": 2492,
+      "inputTokens": 400,
+      "outputTokens": 152,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "school",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "title",
+        "need",
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 4031,
+      "inputTokens": 386,
+      "outputTokens": 167,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "school",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "title",
+        "need",
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 3829,
+      "inputTokens": 386,
+      "outputTokens": 293,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "school",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "users",
+        "dataSource"
+      ],
+      "durationMs": 3662,
+      "inputTokens": 386,
+      "outputTokens": 218,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "sparse",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "title",
+        "industry",
+        "need"
+      ],
+      "durationMs": 2769,
+      "inputTokens": 365,
+      "outputTokens": 156,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "sparse",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "industry",
+        "need"
+      ],
+      "durationMs": 2329,
+      "inputTokens": 365,
+      "outputTokens": 130,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "sparse",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "industry",
+        "need"
+      ],
+      "durationMs": 3561,
+      "inputTokens": 365,
+      "outputTokens": 138,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "uncertain",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "expectedResult"
+      ],
+      "durationMs": 2651,
+      "inputTokens": 382,
+      "outputTokens": 108,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "uncertain",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "expectedResult"
+      ],
+      "durationMs": 2414,
+      "inputTokens": 382,
+      "outputTokens": 136,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "uncertain",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "expectedResult",
+        "constraints"
+      ],
+      "durationMs": 3121,
+      "inputTokens": 382,
+      "outputTokens": 201,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "warehouse",
+      "repetition": 1,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "need",
+        "users",
+        "expectedResult"
+      ],
+      "durationMs": 3991,
+      "inputTokens": 386,
+      "outputTokens": 225,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "warehouse",
+      "repetition": 2,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "need",
+        "users",
+        "expectedResult"
+      ],
+      "durationMs": 3493,
+      "inputTokens": 386,
+      "outputTokens": 163,
+      "fallbackReason": null
+    },
+    {
+      "caseId": "warehouse",
+      "repetition": 3,
+      "mode": "openai",
+      "passed": true,
+      "failures": [],
+      "fields": [
+        "context",
+        "users",
+        "expectedResult"
+      ],
+      "durationMs": 2781,
+      "inputTokens": 386,
+      "outputTokens": 185,
+      "fallbackReason": null
+    }
+  ]
+}
