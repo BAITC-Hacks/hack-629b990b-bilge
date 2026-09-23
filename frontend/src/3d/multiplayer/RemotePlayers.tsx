@@ -1,5 +1,5 @@
-// Другие онлайн-игроки. Позиция — интерполяция серверных пакетов (без телепортов), эмоции — с сервера,
-// случайные idle-действия — локально и только визуально.
+// Other online players. Position interpolates server packets (no teleports), emotes come from the server,
+// random idle actions are local and purely visual.
 import { memo, useMemo, useRef, useSyncExternalStore } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -44,7 +44,7 @@ const RemotePlayer = memo(function RemotePlayer({ store, id, presence, status, r
       const p = pos.current;
       const dx = s.x - p.x, dz = s.z - p.z;
       const dist = Math.hypot(dx, dz);
-      // обычно — точно по интерполированной траектории; большой дрейф — мягкая ускоренная коррекция
+      // normally follow the interpolated path exactly; a large drift gets a soft accelerated correction
       const k = dist > SNAP_DISTANCE ? Math.min(1, dt * 4) : dist > 2.5 ? Math.min(1, dt * 12) : 1;
       const px = p.x, pz = p.z;
       p.x += dx * k; p.z += dz * k;
