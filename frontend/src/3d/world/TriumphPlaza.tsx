@@ -1,5 +1,5 @@
-// TRIUMPH PLAZA — главный ориентир мира: триумфальная арка AI Sana с символом над ней, ступенчатый подиум,
-// флаги, фонтаны, зелёные островки, скульптуры и «Зал достижений». Во время GRAND TRIUMPH монумент загорается.
+// TRIUMPH PLAZA — the world's main landmark: the AI Sana triumphal arch with a symbol above it, a stepped podium,
+// flags, fountains, green islands, sculptures and the "Hall of Achievements". During GRAND TRIUMPH the monument lights up.
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
@@ -33,22 +33,22 @@ export function Monument({ events, reduced }: { events: WorldEventManager; reduc
 
   const stone = useMemo(() => {
     const p: Part[] = [];
-    // подиум: три ступени
+    // podium: three steps
     p.push({ kind: 'cyl', p: [0, 0.3, 0], s: [8.2, 0.24, 8.4], color: '#f2ede4', seg: 24 });
     p.push({ kind: 'cyl', p: [0, 0.54, 0], s: [7.2, 0.24, 7.4], color: '#ebe4d8', seg: 24 });
     p.push({ kind: 'cyl', p: [0, 0.78, 0], s: [6.2, 0.24, 6.4], color: '#f2ede4', seg: 24 });
-    // пилоны арки (слегка сужаются кверху)
+    // arch pylons (taper slightly toward the top)
     for (const x of [-5.2, 5.2]) {
       p.push({ kind: 'box', p: [x, 1.9, 0], s: [3.2, 2.2, 3], color: '#e9e4db' });
       p.push({ kind: 'box', p: [x, 8.2, 0], s: [2.6, 10.6, 2.4], color: '#ffffff' });
       p.push({ kind: 'box', p: [x, 13.7, 0], s: [3, 0.5, 2.8], color: '#e9e4db' });
     }
-    // перекладина
+    // crossbeam
     p.push({ kind: 'box', p: [0, 15.2, 0], s: [14.2, 2.6, 2.8], color: '#ffffff' });
     p.push({ kind: 'box', p: [0, 16.65, 0], s: [14.8, 0.3, 3.1], color: '#e3dccf' });
-    // постамент символа
+    // symbol pedestal
     p.push({ kind: 'cyl', p: [0, 17.2, 0], s: [1.2, 0.8, 1.6], color: '#e9e4db', seg: 8 });
-    // флагштоки вокруг подиума
+    // flagpoles around the podium
     for (let k = 0; k < 4; k++) {
       const a = Math.PI / 4 + (k * Math.PI) / 2;
       p.push({ kind: 'cyl', p: [Math.cos(a) * 9.2, 4, Math.sin(a) * 9.2], s: [0.08, 8, 0.1], color: '#e5e7eb', seg: 6 });
@@ -85,14 +85,14 @@ export function Monument({ events, reduced }: { events: WorldEventManager; reduc
     <group>
       {stone && <mesh geometry={stone} material={SOLID_MAT} castShadow receiveShadow />}
       {accents && <mesh geometry={accents}><meshBasicMaterial ref={glow} vertexColors toneMapped={false} /></mesh>}
-      {/* надпись на перекладине с обеих сторон */}
+      {/* lettering on both sides of the crossbeam */}
       {[1, -1].map((s) => (
         <mesh key={s} position={[0, 15.2, s * 1.42]} rotation-y={s > 0 ? 0 : Math.PI}>
           <planeGeometry args={[11, 2.05]} />
           <meshBasicMaterial map={label} toneMapped={false} />
         </mesh>
       ))}
-      {/* символ AI Sana: светящийся кристалл в кольце */}
+      {/* AI Sana symbol: a glowing crystal inside a ring */}
       <group ref={symbol} position={[0, 20, 0]}>
         <mesh castShadow><octahedronGeometry args={[1.7, 0]} /><meshStandardMaterial color="#5ee6d6" emissive="#14b8a6" emissiveIntensity={0.9} flatShading roughness={0.3} /></mesh>
         <mesh ref={ring}><torusGeometry args={[3, 0.22, 8, 36]} /><meshStandardMaterial color="#f5c542" emissive="#f59e0b" emissiveIntensity={0.35} metalness={0.2} roughness={0.35} /></mesh>
@@ -103,7 +103,7 @@ export function Monument({ events, reduced }: { events: WorldEventManager; reduc
   );
 }
 
-/** Флаг из сегментированной плоскости: вершины колышутся (дёшево, без шейдеров). */
+/** A flag from a segmented plane: vertices wave (cheap, no shaders). */
 export function Flag({ position, color, size = [1.2, 0.8], reduced, events, strong }: { position: [number, number, number]; color: string; size?: [number, number]; reduced: boolean; events?: WorldEventManager; strong?: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const geo = useMemo(() => new THREE.PlaneGeometry(size[0], size[1], 6, 2), [size]);
@@ -115,7 +115,7 @@ export function Flag({ position, color, size = [1.2, 0.8], reduced, events, stro
     const t = state.clock.elapsedTime * 3 * (gust > 1 ? 1.6 : 1) + phase;
     const pos = geo.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < pos.count; i++) {
-      const x = base[i * 3] + size[0] / 2; // 0 у древка
+      const x = base[i * 3] + size[0] / 2; // 0 at the pole
       pos.setZ(i, Math.sin(t + x * 2.4) * 0.12 * x * gust);
     }
     pos.needsUpdate = true;
@@ -165,7 +165,7 @@ function Fountain({ x, z, events, reduced }: { x: number; z: number; events: Wor
   );
 }
 
-/** Зелёные островки, клумбы, урны: всё инстансами/одной геометрией. */
+/** Green islands, flower beds, bins: all as instances/a single geometry. */
 export function PlazaGreens({ layout }: { layout: WorldLayout }) {
   const geo = useMemo(() => {
     const p: Part[] = [];
@@ -203,7 +203,7 @@ export function PlazaGreens({ layout }: { layout: WorldLayout }) {
   return geo ? <mesh geometry={geo} material={SOLID_MAT} castShadow receiveShadow /> : null;
 }
 
-/** Скульптуры в духе кампуса: абстрактные формы на постаментах. */
+/** Campus-style sculptures: abstract shapes on pedestals. */
 export function Sculptures() {
   const geo = useMemo(() => {
     const p: Part[] = [];
@@ -218,7 +218,7 @@ export function Sculptures() {
   return geo ? <mesh geometry={geo} material={SOLID_MAT} castShadow receiveShadow /> : null;
 }
 
-/** «Зал достижений»: последние подтверждённые бизнесом результаты. Не лидерборд. */
+/** "Hall of Achievements": the latest results confirmed by businesses. Not a leaderboard. */
 export function HallOfAchievements({ items }: { items: Achievement[] }) {
   return (
     <group position={[HALL_POS.x, 0, HALL_POS.z]} rotation-y={HALL_POS.rot}>
@@ -226,12 +226,12 @@ export function HallOfAchievements({ items }: { items: Achievement[] }) {
       <mesh position={[0, 0.2, 0]}><boxGeometry args={[6.8, 0.4, 1.1]} /><meshStandardMaterial color="#e3dccf" flatShading /></mesh>
       <Html position={[0, 1.8, 0.22]} transform distanceFactor={7.5} zIndexRange={[15, 0]} style={{ pointerEvents: 'none' }}>
         <div className="hall">
-          <div className="hall-title">Зал достижений</div>
-          {items.length === 0 && <div className="hall-empty">Пока нет подтверждённых результатов</div>}
+          <div className="hall-title">Hall of Achievements</div>
+          {items.length === 0 && <div className="hall-empty">No confirmed results yet</div>}
           {items.slice(0, 4).map((a) => (
             <div key={a.id} className="hall-row">
               <i style={{ background: a.teamColor }} />
-              <span><b>{a.teamName}</b> завершила задачу «{a.taskTitle.length > 38 ? a.taskTitle.slice(0, 36) + '…' : a.taskTitle}»</span>
+              <span><b>{a.teamName}</b> completed “{a.taskTitle.length > 38 ? a.taskTitle.slice(0, 36) + '…' : a.taskTitle}”</span>
             </div>
           ))}
         </div>
