@@ -1,7 +1,7 @@
-// Демо-боты для показа мира одним человеком: настоящие Socket.IO-клиенты BFF под демо-кодами команд
-// из локального backend/demo-accounts.local.json. Проходят тот же серверный путь, что и игроки
-// (вход, движение 12 Гц, эмоции), помечены «демо» в интерфейсе. Баллы и бизнес-данные не трогают.
-// Запуск (бэкенд должен работать): npm run bots   (BOTS=6 по умолчанию, SERVER_URL=http://127.0.0.1:3001)
+// Demo bots for showing the world solo: real BFF Socket.IO clients using the team demo codes
+// from the local backend/demo-accounts.local.json. They take the same server path as players
+// (join, 12 Hz movement, emotes) and are labelled "demo" in the UI. They never touch scores or business data.
+// Run (the backend must be running): npm run bots   (BOTS=6 by default, SERVER_URL=http://127.0.0.1:3001)
 import { readFileSync } from 'node:fs';
 import { io } from 'socket.io-client';
 import { buildLayout, resolveCollisions } from '../src/3d/world/WorldLayout';
@@ -9,14 +9,14 @@ import { EMOTES, NET_HZ, WALK_SPEED } from '../src/shared/world';
 
 const BASE = process.env.SERVER_URL ?? 'http://127.0.0.1:3001';
 const COUNT = Number(process.env.BOTS ?? 6);
-const NAMES = ['Аян', 'Дана', 'Тимур', 'Асель', 'Ержан', 'Камила', 'Санжар', 'Айжан', 'Даулет', 'Жансая'];
+const NAMES = ['Ayan', 'Dana', 'Timur', 'Assel', 'Yerzhan', 'Kamila', 'Sanzhar', 'Aizhan', 'Daulet', 'Zhansaya'];
 const headers = { 'Content-Type': 'application/json', Origin: 'http://localhost:5173' };
 
 type Account = { role: string; displayName: string; teamId: string | null; code: string };
 const file = new URL('../../backend/demo-accounts.local.json', import.meta.url);
 const raw = JSON.parse(readFileSync(file, 'utf8')) as Account[] | { accounts: Account[] };
 const teamAccounts = (Array.isArray(raw) ? raw : raw.accounts).filter((a) => a.role === 'team');
-if (!teamAccounts.length) throw new Error('В backend/demo-accounts.local.json нет командных кодов');
+if (!teamAccounts.length) throw new Error('backend/demo-accounts.local.json has no team codes');
 
 const get = async (path: string) => (await (await fetch(BASE + '/api/v1' + path, { headers })).json()).data;
 const cards: { id: string; industry: string; readinessScore: number; publishedAt: string }[] = [];
@@ -32,7 +32,7 @@ const fronts = layout.placements.map((p) => [p.x + Math.sin(p.rot) * (p.featured
 for (let i = 0; i < COUNT; i++) {
   const acc = teamAccounts[i % teamAccounts.length];
   const res = await fetch(BASE + '/api/v1/session/start', { method: 'POST', headers, body: JSON.stringify({ code: acc.code }) });
-  if (!res.ok) { console.error('не удалось войти:', acc.displayName, res.status); continue; }
+  if (!res.ok) { console.error('sign-in failed:', acc.displayName, res.status); continue; }
   const { token } = (await res.json()).data;
   const socket = io(BASE, { auth: { token }, transports: ['websocket'], extraHeaders: { Origin: 'http://localhost:5173' } });
   const base = acc.teamId ? layout.byTeam[acc.teamId] : null;
@@ -47,7 +47,7 @@ for (let i = 0; i < COUNT; i++) {
     return base ? [base.x, base.z - 7] : [0, 27];
   };
   socket.on('connect', () => socket.emit('world.player.join', { p: [x, 0, z], r, name: NAMES[i % NAMES.length], demo: true }, (ack: { error?: string }) => {
-    if (ack?.error) console.error(acc.displayName, ack.error); else console.log(`бот в мире: ${NAMES[i % NAMES.length]} (${acc.displayName})`);
+    if (ack?.error) console.error(acc.displayName, ack.error); else console.log(`bot in world: ${NAMES[i % NAMES.length]} (${acc.displayName})`);
   }));
   const dt = 1 / NET_HZ;
   setInterval(() => {
@@ -68,4 +68,4 @@ for (let i = 0; i < COUNT; i++) {
     socket.volatile.emit('world.player.move', { p: [x, 0, z], r, m });
   }, 1000 / NET_HZ);
 }
-console.log(`Демо-ботов: ${COUNT} → ${BASE}. Остановить: Ctrl+C`);
+console.log(`Demo bots: ${COUNT} → ${BASE}. Stop: Ctrl+C`);
